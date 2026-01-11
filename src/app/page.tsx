@@ -15,6 +15,7 @@ export default function HomePage() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
+  const [analyzingAll, setAnalyzingAll] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -99,6 +100,52 @@ export default function HomePage() {
         return next;
       });
     }
+  };
+
+  const handleAnalyzeAll = async () => {
+    if (!preferences) return;
+
+    const unanalyzed = apartments.filter(apt => !apt.aiAnalysis);
+    if (unanalyzed.length === 0) return;
+
+    setAnalyzingAll(true);
+
+    // Analyze in batches of 3 to avoid overwhelming the API
+    const batchSize = 3;
+    for (let i = 0; i < unanalyzed.length; i += batchSize) {
+      const batch = unanalyzed.slice(i, i + batchSize);
+
+      await Promise.all(
+        batch.map(async (apartment) => {
+          try {
+            const res = await fetch(`/api/apartments/${apartment._id}/analyze`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ preferences }),
+            });
+
+            const data = await res.json();
+
+            setApartments(prev =>
+              prev.map(apt =>
+                apt._id === apartment._id
+                  ? {
+                      ...apt,
+                      aiAnalysis: data.analysis as AIAnalysis,
+                      matchScore: data.matchScore,
+                      dealScore: data.dealScore,
+                    }
+                  : apt
+              )
+            );
+          } catch (error) {
+            console.error('Error analyzing apartment:', apartment._id, error);
+          }
+        })
+      );
+    }
+
+    setAnalyzingAll(false);
   };
 
   const handleSearch = () => {
@@ -215,6 +262,16 @@ export default function HomePage() {
                 <p className="text-gray-600">
                   Showing {apartments.length} apartments
                 </p>
+                {preferences && (
+                  <Button
+                    onClick={handleAnalyzeAll}
+                    disabled={analyzingAll || analyzingIds.size > 0}
+                    loading={analyzingAll}
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    {analyzingAll ? 'Analyzing...' : 'Analyze All with AI'}
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
