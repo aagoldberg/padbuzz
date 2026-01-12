@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApartmentsCollection } from '@/lib/mongodb';
+import { connectToDatabase } from '@/lib/mongodb';
 import { mockApartments } from '@/lib/mock-data';
 import { SearchFilters, Apartment } from '@/types/apartment';
 
 const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true';
+const USE_SCRAPED_DATA = process.env.USE_SCRAPED_DATA !== 'false'; // Default to scraped data
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,7 +39,36 @@ export async function GET(request: NextRequest) {
     }
 
     const query = buildQuery(filters);
-    const collection = await getApartmentsCollection();
+    const { db } = await connectToDatabase();
+
+    // Use scraped listings (Craigslist with real images) by default
+    if (USE_SCRAPED_DATA) {
+      const scrapedCollection = db.collection('scraped_listings');
+      const scrapedQuery = {
+        ...query,
+        images: { $exists: true, $ne: [] },
+      };
+
+      const [rawApartments, total] = await Promise.all([
+        scrapedCollection.find(scrapedQuery).sort({ scrapedAt: -1 }).skip(skip).limit(limit).toArray(),
+        scrapedCollection.countDocuments(scrapedQuery),
+      ]);
+
+      const apartments = rawApartments.map(transformScrapedListing);
+
+      return NextResponse.json({
+        apartments,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      });
+    }
+
+    // Fallback to original StreetEasy data
+    const collection = db.collection('listings');
 
     // Only get active listings with images
     const baseQuery = {
@@ -80,6 +110,28 @@ export async function GET(request: NextRequest) {
       },
     });
   }
+}
+
+// Transform scraped Craigslist data to our Apartment interface
+function transformScrapedListing(doc: Record<string, unknown>): Apartment {
+  return {
+    _id: (doc._id as { toString: () => string }).toString(),
+    url: doc.url as string || '',
+    address: doc.address as string || '',
+    neighborhood: doc.neighborhood as string || 'NYC',
+    borough: doc.borough as string || 'Manhattan',
+    price: doc.price as number || 0,
+    bedrooms: doc.bedrooms as number || 0,
+    bathrooms: doc.bathrooms as number || 1,
+    sqft: doc.sqft as number | undefined,
+    description: doc.description as string || '',
+    amenities: doc.amenities as string[] || [],
+    images: doc.images as string[] || [],
+    noFee: doc.noFee as boolean || false,
+    rentStabilized: false,
+    createdAt: doc.createdAt as Date || new Date(),
+    updatedAt: doc.updatedAt as Date || new Date(),
+  };
 }
 
 // Transform StreetEasy data to our Apartment interface
