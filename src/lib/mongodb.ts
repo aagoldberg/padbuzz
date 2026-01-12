@@ -22,6 +22,12 @@ export async function connectToDatabase(): Promise<{ client: MongoClient; db: Db
 
 export async function getApartmentsCollection() {
   const { db } = await connectToDatabase();
+  // Use scraped_listings by default (real Craigslist data with images)
+  return db.collection('scraped_listings');
+}
+
+export async function getListingsCollection() {
+  const { db } = await connectToDatabase();
   return db.collection('listings');
 }
 

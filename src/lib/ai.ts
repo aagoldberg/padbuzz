@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { Apartment, AIAnalysis, UserPreferences, ImageAnalysis } from '@/types/apartment';
+import { Apartment, AIAnalysis, UserPreferences } from '@/types/apartment';
+import { analyzeApartmentImages as hfAnalyzeImages, ApartmentImageAnalysis } from './image-analysis';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -7,9 +8,10 @@ const anthropic = new Anthropic({
 
 export async function analyzeApartment(
   apartment: Apartment,
-  userPreferences: UserPreferences
+  userPreferences: UserPreferences,
+  imageAnalysis?: ApartmentImageAnalysis | null
 ): Promise<AIAnalysis> {
-  const prompt = buildAnalysisPrompt(apartment, userPreferences);
+  const prompt = buildAnalysisPrompt(apartment, userPreferences, imageAnalysis);
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
@@ -30,73 +32,19 @@ export async function analyzeApartment(
   return parseAnalysisResponse(textContent.text);
 }
 
-export async function analyzeApartmentImages(
-  images: string[],
-  apartment: Apartment
-): Promise<ImageAnalysis[]> {
-  if (!images.length) return [];
-
-  const imagesToAnalyze = images.slice(0, 5);
-
-  const content: Anthropic.MessageCreateParams['messages'][0]['content'] = [
-    {
-      type: 'text',
-      text: `Analyze these apartment images for a listing at ${apartment.address}.
-For each image, provide:
-1. A brief description of what's shown
-2. Quality rating (excellent/good/fair/poor)
-3. Highlights (positive aspects)
-4. Concerns (any red flags or issues)
-
-Respond in JSON format:
-{
-  "images": [
-    {
-      "description": "...",
-      "quality": "...",
-      "highlights": ["..."],
-      "concerns": ["..."]
-    }
-  ]
-}`,
-    },
-  ];
-
-  for (const imageUrl of imagesToAnalyze) {
-    content.push({
-      type: 'image',
-      source: {
-        type: 'url',
-        url: imageUrl,
-      },
-    });
-  }
+// Use Hugging Face for image analysis (cheaper than Claude vision)
+export async function getImageAnalysis(
+  images: string[]
+): Promise<ApartmentImageAnalysis | null> {
+  if (!images.length) return null;
 
   try {
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [
-        {
-          role: 'user',
-          content,
-        },
-      ],
-    });
-
-    const textContent = response.content.find(c => c.type === 'text');
-    if (!textContent || textContent.type !== 'text') {
-      return [];
-    }
-
-    const parsed = JSON.parse(extractJson(textContent.text));
-    return parsed.images.map((img: ImageAnalysis, idx: number) => ({
-      ...img,
-      imageUrl: imagesToAnalyze[idx],
-    }));
+    // Use caption-based analysis (faster and cheaper)
+    const analysis = await hfAnalyzeImages(images, 'caption');
+    return analysis;
   } catch (error) {
-    console.error('Error analyzing images:', error);
-    return [];
+    console.error('Error analyzing images with HF:', error);
+    return null;
   }
 }
 
@@ -151,7 +99,30 @@ Respond with ONLY a number from 0-100.`;
   return isNaN(score) ? 50 : Math.min(100, Math.max(0, score));
 }
 
-function buildAnalysisPrompt(apartment: Apartment, preferences: UserPreferences): string {
+function buildAnalysisPrompt(
+  apartment: Apartment,
+  preferences: UserPreferences,
+  imageAnalysis?: ApartmentImageAnalysis | null
+): string {
+  let imageSection = '';
+  if (imageAnalysis) {
+    imageSection = `
+IMAGE ANALYSIS (from photos):
+- Overall Cleanliness: ${imageAnalysis.overallCleanliness}/10
+- Overall Natural Light: ${imageAnalysis.overallLight}/10
+- Overall Renovation Level: ${imageAnalysis.overallRenovation}/10
+- Photo Summary: ${imageAnalysis.summary}
+${imageAnalysis.images.map((img, i) => `
+  Photo ${i + 1} (${img.roomType}):
+    - Cleanliness: ${img.cleanliness}/10
+    - Light: ${img.naturalLight}/10
+    - Renovation: ${img.renovationLevel}/10
+    - Spaciousness: ${img.spaciousness}/10
+    - Condition: ${img.condition}
+    - Notes: ${img.notes}`).join('')}
+`;
+  }
+
   return `You are an expert real estate analyst helping apartment hunters in NYC.
 Analyze this apartment listing based on the user's preferences and provide a detailed assessment.
 
@@ -166,7 +137,7 @@ ${apartment.sqft ? `- Square Feet: ${apartment.sqft}` : ''}
 - No Fee: ${apartment.noFee ? 'Yes' : 'No'}
 - Rent Stabilized: ${apartment.rentStabilized ? 'Yes' : 'No'}
 - Description: ${apartment.description || 'No description provided'}
-
+${imageSection}
 USER PREFERENCES:
 - Max Budget: $${preferences.maxPrice}/month
 - Min Bedrooms: ${preferences.minBedrooms}
@@ -188,7 +159,8 @@ Provide your analysis in the following JSON format:
   "priceAssessment": "<assessment of price relative to value and market>"
 }
 
-Be honest and direct. If there are red flags or the apartment doesn't match preferences, say so clearly.`;
+Be honest and direct. If there are red flags or the apartment doesn't match preferences, say so clearly.
+${imageAnalysis ? 'Factor the image analysis ratings into your assessment - cleanliness, light, and renovation level are important quality indicators.' : ''}`;
 }
 
 function parseAnalysisResponse(text: string): AIAnalysis {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getApartmentsCollection, getSubscribersCollection, getDealAlertsCollection } from '@/lib/mongodb';
-import { analyzeApartment, analyzeApartmentImages, calculateDealScore, isExceptionalDeal } from '@/lib/ai';
+import { analyzeApartment, getImageAnalysis, calculateDealScore, isExceptionalDeal } from '@/lib/ai';
 import { notifyPaidSubscribers } from '@/lib/notifications';
 import { UserPreferences, Apartment, Subscriber } from '@/types/apartment';
 
@@ -25,14 +25,18 @@ export async function POST(
       return NextResponse.json({ error: 'Apartment not found' }, { status: 404 });
     }
 
-    const [analysis, imageAnalysis] = await Promise.all([
-      analyzeApartment(apartment, preferences),
-      apartment.images?.length > 0
-        ? analyzeApartmentImages(apartment.images, apartment)
-        : Promise.resolve([]),
-    ]);
+    // First, analyze images with Hugging Face (cheaper)
+    const imageAnalysis = apartment.images?.length > 0
+      ? await getImageAnalysis(apartment.images)
+      : null;
 
-    analysis.imageAnalysis = imageAnalysis;
+    // Then analyze with Claude, passing the image ratings
+    const analysis = await analyzeApartment(apartment, preferences, imageAnalysis);
+
+    // Attach image analysis to response
+    if (imageAnalysis) {
+      analysis.imageAnalysis = imageAnalysis;
+    }
 
     const dealScore = await calculateDealScore(apartment, analysis);
 

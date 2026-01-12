@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
+    "@huggingface/inference": "^4.13.5",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
     "mongodb": "^7.0.0",

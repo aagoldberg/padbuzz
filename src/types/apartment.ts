@@ -31,17 +31,29 @@ export interface AIAnalysis {
   pros: string[];
   cons: string[];
   summary: string;
-  imageAnalysis?: ImageAnalysis[];
+  imageAnalysis?: HFImageAnalysis;
   dealRating: 'exceptional' | 'great' | 'good' | 'fair' | 'poor';
   priceAssessment: string;
 }
 
-export interface ImageAnalysis {
+// Hugging Face image analysis results
+export interface HFImageAnalysis {
+  images: ImageRating[];
+  overallCleanliness: number;
+  overallLight: number;
+  overallRenovation: number;
+  summary: string;
+}
+
+export interface ImageRating {
   imageUrl: string;
-  description: string;
-  quality: 'excellent' | 'good' | 'fair' | 'poor';
-  highlights: string[];
-  concerns: string[];
+  roomType: string;
+  cleanliness: number;
+  naturalLight: number;
+  renovationLevel: number;
+  spaciousness: number;
+  condition: string;
+  notes: string;
 }
 
 export interface UserPreferences {
