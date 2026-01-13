@@ -227,45 +227,98 @@ function detectRoomType(caption: string): string {
 }
 
 function estimateCleanlinessFromCaption(caption: string): number {
-  let score = 6; // Default
-  if (caption.includes('clean') || caption.includes('tidy') || caption.includes('neat')) score += 2;
-  if (caption.includes('dirty') || caption.includes('messy') || caption.includes('clutter')) score -= 2;
-  if (caption.includes('modern') || caption.includes('new')) score += 1;
-  if (caption.includes('old') || caption.includes('worn')) score -= 1;
+  let score = 7; // Start higher - clear photos indicate decent condition
+  const lower = caption.toLowerCase();
+
+  // Positive indicators (things BLIP actually outputs)
+  if (lower.includes('white') || lower.includes('marble') || lower.includes('tile')) score += 1;
+  if (lower.includes('wood') || lower.includes('wooden') || lower.includes('hardwood')) score += 1;
+  if (lower.includes('clean') || lower.includes('tidy') || lower.includes('neat')) score += 2;
+
+  // Negative indicators
+  if (lower.includes('dirty') || lower.includes('messy') || lower.includes('clutter')) score -= 3;
+  if (lower.includes('old') || lower.includes('worn') || lower.includes('stain')) score -= 2;
+
   return Math.max(1, Math.min(10, score));
 }
 
 function estimateLightFromCaption(caption: string): number {
-  let score = 5; // Default
-  if (caption.includes('window') || caption.includes('light') || caption.includes('bright') || caption.includes('sunny')) score += 2;
-  if (caption.includes('dark') || caption.includes('dim')) score -= 2;
-  if (caption.includes('large window') || caption.includes('natural light')) score += 2;
+  let score = 6; // Default reasonable
+  const lower = caption.toLowerCase();
+
+  // Light indicators
+  if (lower.includes('window')) score += 2;
+  if (lower.includes('light') || lower.includes('bright') || lower.includes('sunny') || lower.includes('sun')) score += 2;
+  if (lower.includes('lamp') || lower.includes('chandelier') || lower.includes('lighting')) score += 1;
+  if (lower.includes('white') || lower.includes('mirror')) score += 1; // Reflects light
+
+  // Dark indicators
+  if (lower.includes('dark') || lower.includes('dim') || lower.includes('shadow')) score -= 2;
+
   return Math.max(1, Math.min(10, score));
 }
 
 function estimateRenovationFromCaption(caption: string): number {
-  let score = 5; // Default
-  if (caption.includes('modern') || caption.includes('new') || caption.includes('renovated') || caption.includes('updated')) score += 2;
-  if (caption.includes('stainless') || caption.includes('granite') || caption.includes('hardwood')) score += 2;
-  if (caption.includes('old') || caption.includes('dated') || caption.includes('worn')) score -= 2;
-  if (caption.includes('carpet') && !caption.includes('new carpet')) score -= 1;
+  let score = 6; // Default reasonable
+  const lower = caption.toLowerCase();
+
+  // Modern/renovated indicators (BLIP outputs these)
+  if (lower.includes('stainless') || lower.includes('steel')) score += 2;
+  if (lower.includes('granite') || lower.includes('marble') || lower.includes('quartz')) score += 2;
+  if (lower.includes('hardwood') || lower.includes('wood floor')) score += 2;
+  if (lower.includes('white') || lower.includes('modern') || lower.includes('new')) score += 1;
+  if (lower.includes('counter') || lower.includes('cabinet')) score += 1;
+  if (lower.includes('appliance') || lower.includes('refrigerator') || lower.includes('stove')) score += 1;
+  if (lower.includes('tile') || lower.includes('subway')) score += 1;
+
+  // Dated indicators
+  if (lower.includes('old') || lower.includes('dated') || lower.includes('worn') || lower.includes('vintage')) score -= 2;
+  if (lower.includes('carpet') && !lower.includes('rug')) score -= 1;
+  if (lower.includes('wallpaper')) score -= 1;
+
   return Math.max(1, Math.min(10, score));
 }
 
 function estimateSpaciousnessFromCaption(caption: string): number {
-  let score = 5; // Default
-  if (caption.includes('large') || caption.includes('spacious') || caption.includes('open')) score += 2;
-  if (caption.includes('small') || caption.includes('tiny') || caption.includes('cramped')) score -= 2;
-  if (caption.includes('empty') || caption.includes('unfurnished')) score += 1;
+  let score = 6; // Default reasonable
+  const lower = caption.toLowerCase();
+
+  // Spacious indicators
+  if (lower.includes('large') || lower.includes('spacious') || lower.includes('open')) score += 2;
+  if (lower.includes('living room') || lower.includes('dining')) score += 1;
+  if (lower.includes('floor') || lower.includes('ceiling')) score += 1; // Usually shown in bigger spaces
+  if (lower.includes('empty') || lower.includes('unfurnished')) score += 1;
+
+  // Small indicators
+  if (lower.includes('small') || lower.includes('tiny') || lower.includes('narrow') || lower.includes('compact')) score -= 2;
+  if (lower.includes('closet') && !lower.includes('walk')) score -= 1;
+
   return Math.max(1, Math.min(10, score));
 }
 
 function estimateConditionFromCaption(caption: string): string {
   const lower = caption.toLowerCase();
-  if (lower.includes('new') || lower.includes('modern') || lower.includes('renovated')) return 'excellent';
-  if (lower.includes('clean') || lower.includes('nice') || lower.includes('good')) return 'good';
-  if (lower.includes('old') || lower.includes('dated')) return 'fair';
-  if (lower.includes('damaged') || lower.includes('broken') || lower.includes('dirty')) return 'poor';
+
+  // Count positive and negative signals
+  let positives = 0;
+  let negatives = 0;
+
+  // Positive
+  if (lower.includes('white') || lower.includes('marble') || lower.includes('granite')) positives++;
+  if (lower.includes('stainless') || lower.includes('hardwood') || lower.includes('wood')) positives++;
+  if (lower.includes('new') || lower.includes('modern') || lower.includes('renovated')) positives += 2;
+  if (lower.includes('clean') || lower.includes('nice')) positives++;
+
+  // Negative
+  if (lower.includes('old') || lower.includes('dated') || lower.includes('worn')) negatives++;
+  if (lower.includes('damaged') || lower.includes('broken') || lower.includes('dirty')) negatives += 2;
+  if (lower.includes('stain') || lower.includes('crack')) negatives++;
+
+  if (positives >= 3) return 'excellent';
+  if (positives >= 2 && negatives === 0) return 'good';
+  if (negatives >= 2) return 'poor';
+  if (negatives >= 1) return 'fair';
+  if (positives >= 1) return 'good';
   return 'fair';
 }
 
@@ -282,22 +335,41 @@ function generateSummary(
     parts.push(`Photos show: ${roomTypes.join(', ')}.`);
   }
 
-  if (cleanliness >= 7) {
-    parts.push('Appears clean and well-maintained.');
-  } else if (cleanliness <= 4) {
+  // Cleanliness assessment (adjusted thresholds for raised defaults)
+  if (cleanliness >= 8) {
+    parts.push('Appears very clean and well-maintained.');
+  } else if (cleanliness >= 7) {
+    parts.push('Clean condition.');
+  } else if (cleanliness <= 5) {
     parts.push('Cleanliness may be a concern.');
   }
 
-  if (light >= 7) {
+  // Light assessment
+  if (light >= 8) {
+    parts.push('Excellent natural light.');
+  } else if (light >= 7) {
     parts.push('Good natural light.');
-  } else if (light <= 4) {
+  } else if (light <= 5) {
     parts.push('Limited natural light visible.');
   }
 
-  if (renovation >= 7) {
-    parts.push('Modern/recently renovated.');
-  } else if (renovation <= 4) {
-    parts.push('Appears dated, may need updates.');
+  // Renovation assessment (key differentiator)
+  if (renovation >= 8) {
+    parts.push('Modern finishes and recent updates visible.');
+  } else if (renovation >= 7) {
+    parts.push('Updated with good finishes.');
+  } else if (renovation <= 5) {
+    parts.push('May need some updates.');
+  }
+
+  // Overall quality summary
+  const avgScore = (cleanliness + light + renovation) / 3;
+  if (avgScore >= 8) {
+    parts.push('Overall: Excellent condition.');
+  } else if (avgScore >= 7) {
+    parts.push('Overall: Good condition.');
+  } else if (avgScore <= 5) {
+    parts.push('Overall: Below average condition.');
   }
 
   return parts.join(' ') || 'Standard apartment photos.';
