@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { MapPin, Bed, Bath, Square, Check, Sparkles, TrendingUp } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, Check, Sparkles, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Apartment, AIAnalysis } from '@/types/apartment';
 import Button from '@/components/ui/Button';
 
@@ -35,7 +35,7 @@ export default function ApartmentCard({
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative h-56">
+      <div className="relative h-56 group">
         {apartment.images && apartment.images.length > 0 ? (
           <>
             <Image
@@ -46,17 +46,47 @@ export default function ApartmentCard({
               unoptimized
             />
             {apartment.images.length > 1 && (
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                {apartment.images.slice(0, 5).map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setImageIndex(idx)}
-                    className={`w-2 h-2 rounded-full transition-colors ${
-                      idx === imageIndex ? 'bg-white' : 'bg-white/50'
-                    }`}
-                  />
-                ))}
-              </div>
+              <>
+                {/* Left arrow */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageIndex(prev => prev === 0 ? apartment.images.length - 1 : prev - 1);
+                  }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                {/* Right arrow */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageIndex(prev => prev === apartment.images.length - 1 ? 0 : prev + 1);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                {/* Image counter */}
+                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+                  {imageIndex + 1} / {apartment.images.length}
+                </div>
+                {/* Dots */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+                  {apartment.images.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImageIndex(idx);
+                      }}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        idx === imageIndex ? 'bg-white' : 'bg-white/50 hover:bg-white/75'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </>
         ) : (
