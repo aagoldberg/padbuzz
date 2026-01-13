@@ -128,14 +128,10 @@ export async function analyzeApartmentImages(
 
   const imagesToAnalyze = imageUrls.slice(0, 3); // Limit to 3 images to save costs
 
-  // Analyze images sequentially to avoid rate limits
-  const images: ImageRating[] = [];
-  for (const url of imagesToAnalyze) {
-    const rating = await analyzeImageWithVLM(url);
-    images.push(rating);
-    // Small delay between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
+  // Analyze images in parallel (HuggingFace Pro has higher rate limits)
+  const images = await Promise.all(
+    imagesToAnalyze.map(url => analyzeImageWithVLM(url))
+  );
 
   // Calculate averages
   const avg = (key: keyof ImageRating) => {

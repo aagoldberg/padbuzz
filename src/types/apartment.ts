@@ -24,6 +24,7 @@ export interface ApartmentWithAnalysis extends Apartment {
   aiAnalysis?: AIAnalysis;
   matchScore?: number;
   dealScore?: number;
+  comparativeStats?: ComparativeStats;
 }
 
 export interface AIAnalysis {
@@ -101,4 +102,42 @@ export interface DealAlert {
   dealScore: number;
   sentAt?: Date;
   subscribers: string[];
+}
+
+// Stored image analysis on apartment document
+export interface StoredImageAnalysis {
+  overallQuality: number; // avg of cleanliness + light + renovation
+  cleanliness: number;
+  light: number;
+  renovation: number;
+  analyzedAt: Date;
+}
+
+// Price range benchmarks for O(1) percentile lookup
+export interface PriceBenchmark {
+  _id?: string;
+  priceMin: number;
+  priceMax: number;
+  imageQuality: {
+    p10: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p90: number;
+  };
+  cleanliness: { p10: number; p25: number; p50: number; p75: number; p90: number };
+  light: { p10: number; p25: number; p50: number; p75: number; p90: number };
+  renovation: { p10: number; p25: number; p50: number; p75: number; p90: number };
+  sampleSize: number;
+  updatedAt: Date;
+}
+
+// Comparative stats for display
+export interface ComparativeStats {
+  imageQualityPercentile: number; // "Looks better than X%"
+  lighterThan: number;
+  cleanerThan: number;
+  moreModernThan: number;
+  priceRange: string;
+  sampleSize: number;
 }

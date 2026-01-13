@@ -155,14 +155,15 @@ Provide your analysis in the following JSON format:
   "cons": ["<list of negative aspects or concerns>"],
   "summary": "<2-3 sentence summary of the apartment and fit>",
   "dealRating": "<exceptional|great|good|fair|poor>",
-  "priceAssessment": "<assessment of price relative to value and market>"
+  "priceAssessment": "<assessment of price relative to value and market>",
+  "dealScore": <0-100 score where high means significantly underpriced for quality/features>
 }
 
 Be honest and direct. If there are red flags or the apartment doesn't match preferences, say so clearly.
 ${imageAnalysis ? 'Factor the image analysis ratings into your assessment - cleanliness, light, and renovation level are important quality indicators.' : ''}`;
 }
 
-function parseAnalysisResponse(text: string): AIAnalysis {
+function parseAnalysisResponse(text: string): AIAnalysis & { dealScore: number } {
   try {
     const jsonStr = extractJson(text);
     const parsed = JSON.parse(jsonStr);
@@ -174,6 +175,7 @@ function parseAnalysisResponse(text: string): AIAnalysis {
       summary: parsed.summary || 'Analysis unavailable',
       dealRating: parsed.dealRating || 'fair',
       priceAssessment: parsed.priceAssessment || 'Unable to assess',
+      dealScore: Math.min(100, Math.max(0, parsed.dealScore || 50)),
     };
   } catch (error) {
     console.error('Error parsing AI response:', error);
@@ -184,6 +186,7 @@ function parseAnalysisResponse(text: string): AIAnalysis {
       summary: 'Unable to analyze apartment',
       dealRating: 'fair',
       priceAssessment: 'Unable to assess',
+      dealScore: 50,
     };
   }
 }

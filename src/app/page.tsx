@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Sparkles, Bell, Settings } from 'lucide-react';
+import { Home, Sparkles, Bell, Settings, Info } from 'lucide-react';
+import Link from 'next/link';
 import SearchFilters from '@/components/search/SearchFilters';
 import PreferencesModal from '@/components/search/PreferencesModal';
 import ApartmentCard from '@/components/apartments/ApartmentCard';
@@ -87,6 +88,7 @@ export default function HomePage() {
                 aiAnalysis: data.analysis as AIAnalysis,
                 matchScore: data.matchScore,
                 dealScore: data.dealScore,
+                comparativeStats: data.comparativeStats,
               }
             : apt
         )
@@ -134,6 +136,7 @@ export default function HomePage() {
                       aiAnalysis: data.analysis as AIAnalysis,
                       matchScore: data.matchScore,
                       dealScore: data.dealScore,
+                      comparativeStats: data.comparativeStats,
                     }
                   : apt
               )
@@ -179,12 +182,14 @@ export default function HomePage() {
                 {preferences ? 'Edit Preferences' : 'Set AI Preferences'}
               </Button>
 
-              <Button variant="ghost" size="sm">
-                <Bell className="w-4 h-4" />
-              </Button>
+              <Link href="/about">
+                <Button variant="ghost" size="sm">
+                  <Info className="w-4 h-4" />
+                </Button>
+              </Link>
 
               <Button variant="ghost" size="sm">
-                <Settings className="w-4 h-4" />
+                <Bell className="w-4 h-4" />
               </Button>
             </div>
           </div>
@@ -281,6 +286,7 @@ export default function HomePage() {
                     apartment={apartment}
                     analysis={apartment.aiAnalysis}
                     dealScore={apartment.dealScore}
+                    comparativeStats={apartment.comparativeStats}
                     onAnalyze={() => handleAnalyze(apartment)}
                     analyzing={analyzingIds.has(apartment._id)}
                   />

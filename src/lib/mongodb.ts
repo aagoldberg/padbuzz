@@ -40,3 +40,8 @@ export async function getDealAlertsCollection() {
   const { db } = await connectToDatabase();
   return db.collection('dealAlerts');
 }
+
+export async function getPriceBenchmarksCollection() {
+  const { db } = await connectToDatabase();
+  return db.collection('price_benchmarks');
+}

@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { MapPin, Bed, Bath, Square, Check, Sparkles, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Apartment, AIAnalysis } from '@/types/apartment';
+import { Apartment, AIAnalysis, ComparativeStats } from '@/types/apartment';
 import Button from '@/components/ui/Button';
 
 interface ApartmentCardProps {
   apartment: Apartment;
   analysis?: AIAnalysis;
   dealScore?: number;
+  comparativeStats?: ComparativeStats;
   onAnalyze?: () => void;
   analyzing?: boolean;
 }
@@ -18,6 +19,7 @@ export default function ApartmentCard({
   apartment,
   analysis,
   dealScore,
+  comparativeStats,
   onAnalyze,
   analyzing,
 }: ApartmentCardProps) {
@@ -154,6 +156,18 @@ export default function ApartmentCard({
         {analysis ? (
           <div className="border-t pt-4 mt-4">
             <p className="text-sm text-gray-700 mb-3">{analysis.summary}</p>
+
+            {comparativeStats && comparativeStats.imageQualityPercentile > 0 && (
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 mb-3">
+                <p className="text-sm font-medium text-indigo-700">
+                  Looks better than {comparativeStats.imageQualityPercentile}% of listings in {comparativeStats.priceRange}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Based on {comparativeStats.sampleSize} analyzed apartments
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-2">
               {analysis.pros.slice(0, 2).map((pro, idx) => (
                 <span key={idx} className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">

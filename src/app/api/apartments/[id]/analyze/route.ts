@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getApartmentsCollection, getSubscribersCollection, getDealAlertsCollection } from '@/lib/mongodb';
-import { analyzeApartment, getImageAnalysis, calculateDealScore, isExceptionalDeal } from '@/lib/ai';
+import { analyzeApartment, getImageAnalysis, isExceptionalDeal } from '@/lib/ai';
 import { notifyPaidSubscribers } from '@/lib/notifications';
-import { UserPreferences, Apartment, Subscriber } from '@/types/apartment';
+import { getComparativeStats } from '@/lib/benchmarks';
+import { UserPreferences, Apartment, Subscriber, StoredImageAnalysis } from '@/types/apartment';
 
 export async function POST(
   request: NextRequest,
@@ -19,18 +20,45 @@ export async function POST(
     }
 
     const collection = await getApartmentsCollection();
-    const apartment = await collection.findOne({ _id: new ObjectId(id) }) as Apartment | null;
+    const apartmentDoc = await collection.findOne({ _id: new ObjectId(id) });
 
-    if (!apartment) {
+    if (!apartmentDoc) {
       return NextResponse.json({ error: 'Apartment not found' }, { status: 404 });
     }
 
-    // First, analyze images with Hugging Face (cheaper)
-    const imageAnalysis = apartment.images?.length > 0
-      ? await getImageAnalysis(apartment.images)
-      : null;
+    const apartment = apartmentDoc as unknown as Apartment & { storedImageAnalysis?: StoredImageAnalysis };
 
-    // Then analyze with Claude, passing the image ratings
+    // Check if we already have stored image analysis
+    let storedImageAnalysis = apartment.storedImageAnalysis;
+    let imageAnalysis = null;
+
+    if (apartment.images?.length > 0) {
+      // Get fresh image analysis (needed for Claude prompt)
+      imageAnalysis = await getImageAnalysis(apartment.images);
+
+      // Store it if we don't have it yet
+      if (!storedImageAnalysis && imageAnalysis) {
+        const overallQuality = Math.round(
+          (imageAnalysis.overallCleanliness + imageAnalysis.overallLight + imageAnalysis.overallRenovation) / 3 * 10
+        ) / 10;
+
+        storedImageAnalysis = {
+          overallQuality,
+          cleanliness: imageAnalysis.overallCleanliness,
+          light: imageAnalysis.overallLight,
+          renovation: imageAnalysis.overallRenovation,
+          analyzedAt: new Date()
+        };
+
+        // Store on document for future percentile calculations
+        await collection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { storedImageAnalysis } }
+        );
+      }
+    }
+
+    // Analyze with Claude, passing the image ratings
     const analysis = await analyzeApartment(apartment, preferences, imageAnalysis);
 
     // Attach image analysis to response
@@ -38,7 +66,14 @@ export async function POST(
       analysis.imageAnalysis = imageAnalysis;
     }
 
-    const dealScore = await calculateDealScore(apartment, analysis);
+    // Get deal score from analysis (now included in single Claude call)
+    const dealScore = (analysis as unknown as { dealScore?: number }).dealScore || 50;
+
+    // Get comparative stats (O(1) lookup)
+    let comparativeStats = null;
+    if (storedImageAnalysis) {
+      comparativeStats = await getComparativeStats(apartment.price, storedImageAnalysis);
+    }
 
     if (isExceptionalDeal(analysis, dealScore)) {
       const subscribersCollection = await getSubscribersCollection();
@@ -63,6 +98,7 @@ export async function POST(
       dealScore,
       matchScore: analysis.overallScore,
       isExceptionalDeal: isExceptionalDeal(analysis, dealScore),
+      comparativeStats,
     });
   } catch (error) {
     console.error('Error analyzing apartment:', error);
