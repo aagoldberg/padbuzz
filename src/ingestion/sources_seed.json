@@ -1,0 +1,600 @@
+{
+  "$schema": "./sources.schema.json",
+  "version": "1.0.0",
+  "lastUpdated": "2025-01-13",
+  "sources": [
+    {
+      "id": "craigslist-nyc",
+      "name": "Craigslist NYC",
+      "type": "classifieds",
+      "enabled": true,
+      "priority": 1,
+      "urls": {
+        "base": "https://newyork.craigslist.org",
+        "categories": [
+          "/search/apa",
+          "/search/sub",
+          "/search/roo"
+        ],
+        "boroughFilters": {
+          "manhattan": "?nh=128,129,130,131,132,133,134,135,136,137",
+          "brooklyn": "?nh=138,139,140,141,142,143,144,145,146,147,148",
+          "queens": "?nh=149,150,151,152,153,154,155,156,157,158",
+          "bronx": "?nh=159,160,161,162,163",
+          "staten_island": "?nh=164,165,166,167"
+        }
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "medium",
+        "sqft": "low",
+        "address": "medium",
+        "images": "high",
+        "description": "high",
+        "broker": "low"
+      },
+      "scrapeConfig": {
+        "difficulty": "low",
+        "rateLimit": {
+          "requestsPerMinute": 10,
+          "delayMs": 2000,
+          "jitterMs": 1000
+        },
+        "refreshIntervalMinutes": 15,
+        "parser": "craigslist",
+        "requiresJs": false
+      },
+      "notes": "Primary source. Watch for phone number spam listings."
+    },
+    {
+      "id": "renthop",
+      "name": "RentHop",
+      "type": "marketplace",
+      "enabled": true,
+      "priority": 2,
+      "urls": {
+        "base": "https://www.renthop.com",
+        "searchPath": "/nyc/apartments-for-rent",
+        "apiEndpoint": null
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 5000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 60,
+        "parser": "renthop",
+        "requiresJs": true
+      },
+      "notes": "High quality data. May need Playwright for dynamic content."
+    },
+    {
+      "id": "leasebreak",
+      "name": "LeaseBreak",
+      "type": "marketplace",
+      "enabled": true,
+      "priority": 3,
+      "urls": {
+        "base": "https://www.leasebreak.com",
+        "searchPath": "/new-york-city"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "medium",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "low"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 5000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "leasebreak",
+        "requiresJs": false
+      },
+      "notes": "Sublets and lease takeovers. Good for short-term."
+    },
+    {
+      "id": "cityrealty",
+      "name": "CityRealty",
+      "type": "marketplace",
+      "enabled": true,
+      "priority": 4,
+      "urls": {
+        "base": "https://www.cityrealty.com",
+        "searchPath": "/nyc/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 5000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "cityrealty",
+        "requiresJs": true
+      },
+      "notes": "Good building data. Focuses on Manhattan luxury."
+    },
+    {
+      "id": "nybits",
+      "name": "NYBits",
+      "type": "marketplace",
+      "enabled": false,
+      "priority": 5,
+      "urls": {
+        "base": "https://www.nybits.com",
+        "searchPath": "/search"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "medium",
+        "sqft": "low",
+        "address": "medium",
+        "images": "medium",
+        "description": "medium",
+        "broker": "medium"
+      },
+      "scrapeConfig": {
+        "difficulty": "low",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 4000,
+          "jitterMs": 1500
+        },
+        "refreshIntervalMinutes": 180,
+        "parser": "nybits",
+        "requiresJs": false
+      },
+      "notes": "Aggregates from brokers. May have duplicates."
+    },
+    {
+      "id": "naked-apartments",
+      "name": "Naked Apartments",
+      "type": "marketplace",
+      "enabled": false,
+      "priority": 6,
+      "urls": {
+        "base": "https://www.nakedapartments.com",
+        "searchPath": "/nyc/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "medium",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 5000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "naked-apartments",
+        "requiresJs": true
+      },
+      "notes": "To verify: check if still active and data quality."
+    },
+    {
+      "id": "compass",
+      "name": "Compass",
+      "type": "brokerage",
+      "enabled": true,
+      "priority": 10,
+      "urls": {
+        "base": "https://www.compass.com",
+        "searchPath": "/homes-for-rent/nyc-ny",
+        "sitemap": "https://www.compass.com/sitemap.xml"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "high",
+        "rateLimit": {
+          "requestsPerMinute": 3,
+          "delayMs": 10000,
+          "jitterMs": 5000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "generic-broker",
+        "requiresJs": true
+      },
+      "notes": "Major brokerage. Heavy JS. High overlap with other sources."
+    },
+    {
+      "id": "corcoran",
+      "name": "Corcoran Group",
+      "type": "brokerage",
+      "enabled": true,
+      "priority": 11,
+      "urls": {
+        "base": "https://www.corcoran.com",
+        "searchPath": "/nyc-real-estate/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "high",
+        "rateLimit": {
+          "requestsPerMinute": 3,
+          "delayMs": 10000,
+          "jitterMs": 5000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "generic-broker",
+        "requiresJs": true
+      },
+      "notes": "Major NYC brokerage. Luxury focus."
+    },
+    {
+      "id": "douglas-elliman",
+      "name": "Douglas Elliman",
+      "type": "brokerage",
+      "enabled": true,
+      "priority": 12,
+      "urls": {
+        "base": "https://www.elliman.com",
+        "searchPath": "/new-york-city/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "high",
+        "rateLimit": {
+          "requestsPerMinute": 3,
+          "delayMs": 10000,
+          "jitterMs": 5000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "generic-broker",
+        "requiresJs": true
+      },
+      "notes": "Large brokerage. Good data quality."
+    },
+    {
+      "id": "brown-harris-stevens",
+      "name": "Brown Harris Stevens",
+      "type": "brokerage",
+      "enabled": true,
+      "priority": 13,
+      "urls": {
+        "base": "https://www.bhsusa.com",
+        "searchPath": "/rentals/new-york-city"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 8000,
+          "jitterMs": 3000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "generic-broker",
+        "requiresJs": true
+      },
+      "notes": "Luxury NYC rentals."
+    },
+    {
+      "id": "nest-seekers",
+      "name": "Nest Seekers International",
+      "type": "brokerage",
+      "enabled": true,
+      "priority": 14,
+      "urls": {
+        "base": "https://www.nestseekers.com",
+        "searchPath": "/sales/new-york/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 8000,
+          "jitterMs": 3000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "generic-broker",
+        "requiresJs": true
+      },
+      "notes": "International brokerage with strong NYC presence."
+    },
+    {
+      "id": "bohemia-realty",
+      "name": "Bohemia Realty Group",
+      "type": "boutique-broker",
+      "enabled": true,
+      "priority": 20,
+      "urls": {
+        "base": "https://www.bohemiarealtygroup.com",
+        "searchPath": "/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "medium",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "low",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 5000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 180,
+        "parser": "generic-broker",
+        "requiresJs": false
+      },
+      "notes": "Uptown/Harlem specialist. Good no-fee inventory."
+    },
+    {
+      "id": "gaia-real-estate",
+      "name": "Gaia Real Estate",
+      "type": "boutique-broker",
+      "enabled": true,
+      "priority": 21,
+      "urls": {
+        "base": "https://www.gaiarealestate.com",
+        "searchPath": "/rentals"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "medium",
+        "sqft": "low",
+        "address": "high",
+        "images": "high",
+        "description": "medium",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "low",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 5000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 180,
+        "parser": "generic-broker",
+        "requiresJs": false
+      },
+      "notes": "Brooklyn/Queens specialist."
+    },
+    {
+      "id": "mns-real-estate",
+      "name": "MNS Real Estate",
+      "type": "boutique-broker",
+      "enabled": true,
+      "priority": 22,
+      "urls": {
+        "base": "https://www.mns.com",
+        "searchPath": "/manhattan-apartments-for-rent"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 5,
+          "delayMs": 6000,
+          "jitterMs": 2000
+        },
+        "refreshIntervalMinutes": 120,
+        "parser": "generic-broker",
+        "requiresJs": false
+      },
+      "notes": "Manhattan specialist with good inventory."
+    },
+    {
+      "id": "apartments-com",
+      "name": "Apartments.com",
+      "type": "marketplace",
+      "enabled": false,
+      "priority": 30,
+      "urls": {
+        "base": "https://www.apartments.com",
+        "searchPath": "/new-york-ny"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "medium"
+      },
+      "scrapeConfig": {
+        "difficulty": "high",
+        "rateLimit": {
+          "requestsPerMinute": 2,
+          "delayMs": 15000,
+          "jitterMs": 5000
+        },
+        "refreshIntervalMinutes": 240,
+        "parser": "apartments-com",
+        "requiresJs": true
+      },
+      "notes": "Large aggregator. Heavy bot protection. Phase 2."
+    },
+    {
+      "id": "hotpads",
+      "name": "HotPads",
+      "type": "marketplace",
+      "enabled": false,
+      "priority": 31,
+      "urls": {
+        "base": "https://hotpads.com",
+        "searchPath": "/new-york-ny/apartments-for-rent"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "medium"
+      },
+      "scrapeConfig": {
+        "difficulty": "high",
+        "rateLimit": {
+          "requestsPerMinute": 2,
+          "delayMs": 15000,
+          "jitterMs": 5000
+        },
+        "refreshIntervalMinutes": 240,
+        "parser": "hotpads",
+        "requiresJs": true
+      },
+      "notes": "WARNING: Zillow-owned. EXCLUDE from scraping."
+    },
+    {
+      "id": "padmapper",
+      "name": "PadMapper",
+      "type": "marketplace",
+      "enabled": false,
+      "priority": 32,
+      "urls": {
+        "base": "https://www.padmapper.com",
+        "searchPath": "/apartments/new-york-ny"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "medium",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "low"
+      },
+      "scrapeConfig": {
+        "difficulty": "medium",
+        "rateLimit": {
+          "requestsPerMinute": 3,
+          "delayMs": 10000,
+          "jitterMs": 4000
+        },
+        "refreshIntervalMinutes": 180,
+        "parser": "padmapper",
+        "requiresJs": true
+      },
+      "notes": "Aggregator. Check TOS. Phase 2."
+    }
+  ],
+  "discoveryQueries": [
+    "site:.com 'available rentals' Brooklyn",
+    "site:.com 'apartments for rent' Manhattan 'no fee'",
+    "site:.com 'NYC rentals' -zillow -streeteasy",
+    "site:.com 'available apartments' Queens",
+    "site:.com inurl:rentals Brooklyn apartments",
+    "site:.com 'apartment availability' 'New York'",
+    "'property management' NYC 'available units'",
+    "'landlord' 'apartments available' Brooklyn"
+  ],
+  "excludedDomains": [
+    "zillow.com",
+    "streeteasy.com",
+    "trulia.com",
+    "hotpads.com",
+    "facebook.com",
+    "marketplace.facebook.com",
+    "realtor.com"
+  ]
+}
