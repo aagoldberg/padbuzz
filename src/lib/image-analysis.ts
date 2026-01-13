@@ -1,7 +1,3 @@
-import { HfInference } from '@huggingface/inference';
-
-const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
-
 export interface ImageRating {
   imageUrl: string;
   roomType: string;
@@ -21,17 +17,10 @@ export interface ApartmentImageAnalysis {
   summary: string;
 }
 
-const RATING_QUESTIONS = [
-  { key: 'roomType', question: 'What type of room is this? Answer with one word: kitchen, bedroom, bathroom, living room, or other.' },
-  { key: 'cleanliness', question: 'On a scale of 1-10, how clean does this room appear? Answer with just a number.' },
-  { key: 'naturalLight', question: 'On a scale of 1-10, how much natural light is visible? Answer with just a number.' },
-  { key: 'renovationLevel', question: 'On a scale of 1-10, how modern/renovated does this space look? Answer with just a number.' },
-  { key: 'spaciousness', question: 'On a scale of 1-10, how spacious does this room appear? Answer with just a number.' },
-  { key: 'condition', question: 'Describe the overall condition in 2-3 words: excellent, good, fair, poor, or needs work.' },
-];
+const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+const VLM_MODEL = 'Qwen/Qwen2.5-VL-7B-Instruct';
 
 async function fetchImageAsBase64(imageUrl: string): Promise<string> {
-  // Handle local images by constructing full URL
   const fullUrl = imageUrl.startsWith('http')
     ? imageUrl
     : `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}${imageUrl}`;
@@ -41,133 +30,117 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string> {
   return Buffer.from(buffer).toString('base64');
 }
 
-async function analyzeImageWithVQA(imageUrl: string): Promise<Partial<ImageRating>> {
+async function analyzeImageWithVLM(imageUrl: string): Promise<ImageRating> {
   try {
-    const imageBase64 = await fetchImageAsBase64(imageUrl);
-    const imageBlob = new Blob([Buffer.from(imageBase64, 'base64')], { type: 'image/jpeg' });
+    const base64 = await fetchImageAsBase64(imageUrl);
 
-    const results: Partial<ImageRating> = { imageUrl };
-
-    // Use BLIP for image captioning first to get context
-    const caption = await hf.imageToText({
-      model: 'Salesforce/blip-image-captioning-large',
-      data: imageBlob,
+    const response = await fetch('https://router.huggingface.co/v1/chat/completions', {
+      headers: {
+        Authorization: `Bearer ${HF_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      method: 'POST',
+      body: JSON.stringify({
+        model: VLM_MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:image/jpeg;base64,${base64}` }
+              },
+              {
+                type: 'text',
+                text: `Analyze this apartment photo. Rate 1-10 for cleanliness, natural light, renovation/modernity, and spaciousness. Identify room type. Respond ONLY with JSON (no markdown):
+{"cleanliness":N,"light":N,"renovation":N,"spaciousness":N,"room_type":"kitchen/bedroom/bathroom/living room/other","condition":"excellent/good/fair/poor","notes":"brief observation"}`
+              }
+            ]
+          }
+        ],
+        max_tokens: 200
+      }),
     });
 
-    results.notes = caption.generated_text || '';
-
-    // Use VQA model for specific questions
-    for (const { key, question } of RATING_QUESTIONS) {
-      try {
-        const answer = await hf.visualQuestionAnswering({
-          model: 'dandelin/vilt-b32-finetuned-vqa',
-          inputs: {
-            image: imageBlob,
-            question,
-          },
-        });
-
-        const answerText = answer.answer || '';
-
-        if (key === 'roomType') {
-          results.roomType = normalizeRoomType(answerText);
-        } else if (key === 'condition') {
-          results.condition = normalizeCondition(answerText);
-        } else {
-          // Parse numeric ratings
-          const num = parseInt(answerText.replace(/[^0-9]/g, ''), 10);
-          if (!isNaN(num) && num >= 1 && num <= 10) {
-            (results as Record<string, unknown>)[key] = num;
-          } else {
-            // Estimate based on answer sentiment
-            (results as Record<string, unknown>)[key] = estimateRating(answerText);
-          }
-        }
-      } catch (err) {
-        console.error(`VQA error for ${key}:`, err);
-      }
+    if (!response.ok) {
+      console.error('VLM API error:', response.status);
+      return defaultRating(imageUrl);
     }
 
-    return results;
+    const result = await response.json();
+    const content = result.choices?.[0]?.message?.content || '';
+
+    // Parse JSON from response (may be wrapped in markdown code block)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('No JSON in VLM response:', content);
+      return defaultRating(imageUrl);
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    return {
+      imageUrl,
+      roomType: parsed.room_type || 'room',
+      cleanliness: clamp(parsed.cleanliness || 5, 1, 10),
+      naturalLight: clamp(parsed.light || 5, 1, 10),
+      renovationLevel: clamp(parsed.renovation || 5, 1, 10),
+      spaciousness: clamp(parsed.spaciousness || 5, 1, 10),
+      condition: parsed.condition || 'fair',
+      notes: parsed.notes || '',
+    };
   } catch (error) {
-    console.error('Error analyzing image:', error);
-    return { imageUrl, notes: 'Analysis failed' };
+    console.error('Error analyzing image with VLM:', error);
+    return defaultRating(imageUrl);
   }
 }
 
-// Alternative: Use image captioning + heuristics for faster/cheaper analysis
-async function analyzeImageWithCaptioning(imageUrl: string): Promise<Partial<ImageRating>> {
-  try {
-    const imageBase64 = await fetchImageAsBase64(imageUrl);
-    const imageBlob = new Blob([Buffer.from(imageBase64, 'base64')], { type: 'image/jpeg' });
+function defaultRating(imageUrl: string): ImageRating {
+  return {
+    imageUrl,
+    roomType: 'unknown',
+    cleanliness: 6,
+    naturalLight: 6,
+    renovationLevel: 6,
+    spaciousness: 6,
+    condition: 'fair',
+    notes: 'Analysis unavailable',
+  };
+}
 
-    // Get detailed caption
-    const caption = await hf.imageToText({
-      model: 'Salesforce/blip-image-captioning-large',
-      data: imageBlob,
-    });
-
-    const captionText = (caption.generated_text || '').toLowerCase();
-
-    // Heuristic analysis based on caption
-    return {
-      imageUrl,
-      roomType: detectRoomType(captionText),
-      cleanliness: estimateCleanlinessFromCaption(captionText),
-      naturalLight: estimateLightFromCaption(captionText),
-      renovationLevel: estimateRenovationFromCaption(captionText),
-      spaciousness: estimateSpaciousnessFromCaption(captionText),
-      condition: estimateConditionFromCaption(captionText),
-      notes: caption.generated_text || '',
-    };
-  } catch (error) {
-    console.error('Error with captioning:', error);
-    return {
-      imageUrl,
-      roomType: 'unknown',
-      cleanliness: 5,
-      naturalLight: 5,
-      renovationLevel: 5,
-      spaciousness: 5,
-      condition: 'unknown',
-      notes: 'Analysis unavailable'
-    };
-  }
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
 }
 
 export async function analyzeApartmentImages(
-  imageUrls: string[],
-  method: 'vqa' | 'caption' = 'caption'
+  imageUrls: string[]
 ): Promise<ApartmentImageAnalysis> {
-  const imagesToAnalyze = imageUrls.slice(0, 5); // Limit to 5 images
+  if (!HF_API_KEY) {
+    console.warn('HUGGINGFACE_API_KEY not set, skipping image analysis');
+    return {
+      images: [],
+      overallCleanliness: 6,
+      overallLight: 6,
+      overallRenovation: 6,
+      summary: 'Image analysis unavailable (API key not configured)',
+    };
+  }
 
-  const analyzeFunc = method === 'vqa' ? analyzeImageWithVQA : analyzeImageWithCaptioning;
+  const imagesToAnalyze = imageUrls.slice(0, 3); // Limit to 3 images to save costs
 
-  // Analyze images in parallel (with some rate limiting)
-  const imagePromises = imagesToAnalyze.map((url, idx) =>
-    new Promise<Partial<ImageRating>>(resolve =>
-      setTimeout(() => analyzeFunc(url).then(resolve), idx * 500)
-    )
-  );
-
-  const rawResults = await Promise.all(imagePromises);
-
-  // Fill in defaults for any missing values
-  const images: ImageRating[] = rawResults.map(r => ({
-    imageUrl: r.imageUrl || '',
-    roomType: r.roomType || 'unknown',
-    cleanliness: r.cleanliness || 5,
-    naturalLight: r.naturalLight || 5,
-    renovationLevel: r.renovationLevel || 5,
-    spaciousness: r.spaciousness || 5,
-    condition: r.condition || 'unknown',
-    notes: r.notes || '',
-  }));
+  // Analyze images sequentially to avoid rate limits
+  const images: ImageRating[] = [];
+  for (const url of imagesToAnalyze) {
+    const rating = await analyzeImageWithVLM(url);
+    images.push(rating);
+    // Small delay between requests
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
 
   // Calculate averages
   const avg = (key: keyof ImageRating) => {
     const values = images.map(img => img[key] as number).filter(v => typeof v === 'number');
-    return values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 5;
+    return values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 6;
   };
 
   const overallCleanliness = avg('cleanliness');
@@ -187,141 +160,6 @@ export async function analyzeApartmentImages(
   };
 }
 
-// Helper functions
-
-function normalizeRoomType(text: string): string {
-  const lower = text.toLowerCase();
-  if (lower.includes('kitchen')) return 'kitchen';
-  if (lower.includes('bed')) return 'bedroom';
-  if (lower.includes('bath')) return 'bathroom';
-  if (lower.includes('living') || lower.includes('lounge')) return 'living room';
-  if (lower.includes('dining')) return 'dining room';
-  return 'other';
-}
-
-function normalizeCondition(text: string): string {
-  const lower = text.toLowerCase();
-  if (lower.includes('excellent') || lower.includes('perfect')) return 'excellent';
-  if (lower.includes('good') || lower.includes('nice')) return 'good';
-  if (lower.includes('fair') || lower.includes('okay') || lower.includes('ok')) return 'fair';
-  if (lower.includes('poor') || lower.includes('bad')) return 'poor';
-  if (lower.includes('needs') || lower.includes('work')) return 'needs work';
-  return 'fair';
-}
-
-function estimateRating(text: string): number {
-  const lower = text.toLowerCase();
-  if (lower.includes('yes') || lower.includes('very') || lower.includes('excellent')) return 8;
-  if (lower.includes('no') || lower.includes('not') || lower.includes('poor')) return 3;
-  if (lower.includes('some') || lower.includes('moderate')) return 6;
-  return 5;
-}
-
-function detectRoomType(caption: string): string {
-  if (caption.includes('kitchen') || caption.includes('stove') || caption.includes('refrigerator') || caption.includes('sink')) return 'kitchen';
-  if (caption.includes('bed') || caption.includes('bedroom') || caption.includes('mattress')) return 'bedroom';
-  if (caption.includes('bath') || caption.includes('toilet') || caption.includes('shower')) return 'bathroom';
-  if (caption.includes('living') || caption.includes('couch') || caption.includes('sofa') || caption.includes('tv')) return 'living room';
-  if (caption.includes('dining') || caption.includes('table')) return 'dining room';
-  return 'room';
-}
-
-function estimateCleanlinessFromCaption(caption: string): number {
-  let score = 7; // Start higher - clear photos indicate decent condition
-  const lower = caption.toLowerCase();
-
-  // Positive indicators (things BLIP actually outputs)
-  if (lower.includes('white') || lower.includes('marble') || lower.includes('tile')) score += 1;
-  if (lower.includes('wood') || lower.includes('wooden') || lower.includes('hardwood')) score += 1;
-  if (lower.includes('clean') || lower.includes('tidy') || lower.includes('neat')) score += 2;
-
-  // Negative indicators
-  if (lower.includes('dirty') || lower.includes('messy') || lower.includes('clutter')) score -= 3;
-  if (lower.includes('old') || lower.includes('worn') || lower.includes('stain')) score -= 2;
-
-  return Math.max(1, Math.min(10, score));
-}
-
-function estimateLightFromCaption(caption: string): number {
-  let score = 6; // Default reasonable
-  const lower = caption.toLowerCase();
-
-  // Light indicators
-  if (lower.includes('window')) score += 2;
-  if (lower.includes('light') || lower.includes('bright') || lower.includes('sunny') || lower.includes('sun')) score += 2;
-  if (lower.includes('lamp') || lower.includes('chandelier') || lower.includes('lighting')) score += 1;
-  if (lower.includes('white') || lower.includes('mirror')) score += 1; // Reflects light
-
-  // Dark indicators
-  if (lower.includes('dark') || lower.includes('dim') || lower.includes('shadow')) score -= 2;
-
-  return Math.max(1, Math.min(10, score));
-}
-
-function estimateRenovationFromCaption(caption: string): number {
-  let score = 6; // Default reasonable
-  const lower = caption.toLowerCase();
-
-  // Modern/renovated indicators (BLIP outputs these)
-  if (lower.includes('stainless') || lower.includes('steel')) score += 2;
-  if (lower.includes('granite') || lower.includes('marble') || lower.includes('quartz')) score += 2;
-  if (lower.includes('hardwood') || lower.includes('wood floor')) score += 2;
-  if (lower.includes('white') || lower.includes('modern') || lower.includes('new')) score += 1;
-  if (lower.includes('counter') || lower.includes('cabinet')) score += 1;
-  if (lower.includes('appliance') || lower.includes('refrigerator') || lower.includes('stove')) score += 1;
-  if (lower.includes('tile') || lower.includes('subway')) score += 1;
-
-  // Dated indicators
-  if (lower.includes('old') || lower.includes('dated') || lower.includes('worn') || lower.includes('vintage')) score -= 2;
-  if (lower.includes('carpet') && !lower.includes('rug')) score -= 1;
-  if (lower.includes('wallpaper')) score -= 1;
-
-  return Math.max(1, Math.min(10, score));
-}
-
-function estimateSpaciousnessFromCaption(caption: string): number {
-  let score = 6; // Default reasonable
-  const lower = caption.toLowerCase();
-
-  // Spacious indicators
-  if (lower.includes('large') || lower.includes('spacious') || lower.includes('open')) score += 2;
-  if (lower.includes('living room') || lower.includes('dining')) score += 1;
-  if (lower.includes('floor') || lower.includes('ceiling')) score += 1; // Usually shown in bigger spaces
-  if (lower.includes('empty') || lower.includes('unfurnished')) score += 1;
-
-  // Small indicators
-  if (lower.includes('small') || lower.includes('tiny') || lower.includes('narrow') || lower.includes('compact')) score -= 2;
-  if (lower.includes('closet') && !lower.includes('walk')) score -= 1;
-
-  return Math.max(1, Math.min(10, score));
-}
-
-function estimateConditionFromCaption(caption: string): string {
-  const lower = caption.toLowerCase();
-
-  // Count positive and negative signals
-  let positives = 0;
-  let negatives = 0;
-
-  // Positive
-  if (lower.includes('white') || lower.includes('marble') || lower.includes('granite')) positives++;
-  if (lower.includes('stainless') || lower.includes('hardwood') || lower.includes('wood')) positives++;
-  if (lower.includes('new') || lower.includes('modern') || lower.includes('renovated')) positives += 2;
-  if (lower.includes('clean') || lower.includes('nice')) positives++;
-
-  // Negative
-  if (lower.includes('old') || lower.includes('dated') || lower.includes('worn')) negatives++;
-  if (lower.includes('damaged') || lower.includes('broken') || lower.includes('dirty')) negatives += 2;
-  if (lower.includes('stain') || lower.includes('crack')) negatives++;
-
-  if (positives >= 3) return 'excellent';
-  if (positives >= 2 && negatives === 0) return 'good';
-  if (negatives >= 2) return 'poor';
-  if (negatives >= 1) return 'fair';
-  if (positives >= 1) return 'good';
-  return 'fair';
-}
-
 function generateSummary(
   images: ImageRating[],
   roomTypes: string[],
@@ -335,42 +173,26 @@ function generateSummary(
     parts.push(`Photos show: ${roomTypes.join(', ')}.`);
   }
 
-  // Cleanliness assessment (adjusted thresholds for raised defaults)
-  if (cleanliness >= 8) {
-    parts.push('Appears very clean and well-maintained.');
-  } else if (cleanliness >= 7) {
-    parts.push('Clean condition.');
-  } else if (cleanliness <= 5) {
-    parts.push('Cleanliness may be a concern.');
-  }
+  // Cleanliness
+  if (cleanliness >= 8) parts.push('Very clean.');
+  else if (cleanliness >= 6) parts.push('Clean condition.');
+  else if (cleanliness <= 4) parts.push('Cleanliness concerns.');
 
-  // Light assessment
-  if (light >= 8) {
-    parts.push('Excellent natural light.');
-  } else if (light >= 7) {
-    parts.push('Good natural light.');
-  } else if (light <= 5) {
-    parts.push('Limited natural light visible.');
-  }
+  // Light
+  if (light >= 8) parts.push('Excellent natural light.');
+  else if (light >= 6) parts.push('Good light.');
+  else if (light <= 4) parts.push('Limited light.');
 
-  // Renovation assessment (key differentiator)
-  if (renovation >= 8) {
-    parts.push('Modern finishes and recent updates visible.');
-  } else if (renovation >= 7) {
-    parts.push('Updated with good finishes.');
-  } else if (renovation <= 5) {
-    parts.push('May need some updates.');
-  }
+  // Renovation
+  if (renovation >= 8) parts.push('Modern/updated finishes.');
+  else if (renovation >= 6) parts.push('Good condition.');
+  else if (renovation <= 4) parts.push('May need updates.');
 
-  // Overall quality summary
+  // Overall
   const avgScore = (cleanliness + light + renovation) / 3;
-  if (avgScore >= 8) {
-    parts.push('Overall: Excellent condition.');
-  } else if (avgScore >= 7) {
-    parts.push('Overall: Good condition.');
-  } else if (avgScore <= 5) {
-    parts.push('Overall: Below average condition.');
-  }
+  if (avgScore >= 8) parts.push('Overall: Excellent.');
+  else if (avgScore >= 6) parts.push('Overall: Good.');
+  else if (avgScore <= 4) parts.push('Overall: Below average.');
 
-  return parts.join(' ') || 'Standard apartment photos.';
+  return parts.join(' ') || 'Standard apartment.';
 }

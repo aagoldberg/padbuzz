@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Apartment, AIAnalysis, UserPreferences } from '@/types/apartment';
-import { analyzeApartmentImages as hfAnalyzeImages, ApartmentImageAnalysis } from './image-analysis';
+import { analyzeApartmentImages, ApartmentImageAnalysis } from './image-analysis';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -32,15 +32,14 @@ export async function analyzeApartment(
   return parseAnalysisResponse(textContent.text);
 }
 
-// Use Hugging Face for image analysis (cheaper than Claude vision)
+// Use Hugging Face VLM for image analysis (cheaper than Claude vision)
 export async function getImageAnalysis(
   images: string[]
 ): Promise<ApartmentImageAnalysis | null> {
   if (!images.length) return null;
 
   try {
-    // Use caption-based analysis (faster and cheaper)
-    const analysis = await hfAnalyzeImages(images, 'caption');
+    const analysis = await analyzeApartmentImages(images);
     return analysis;
   } catch (error) {
     console.error('Error analyzing images with HF:', error);
