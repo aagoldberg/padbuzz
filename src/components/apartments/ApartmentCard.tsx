@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { MapPin, Bed, Bath, Square, Check, Sparkles, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Apartment, AIAnalysis, ComparativeStats } from '@/types/apartment';
 import Button from '@/components/ui/Button';
@@ -36,8 +37,9 @@ export default function ApartmentCard({
   const dealBadge = getDealBadge();
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative h-56 group">
+    <Link href={`/listing/${apartment._id}`} className="block">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+        <div className="relative h-56 group">
         {apartment.images && apartment.images.length > 0 ? (
           <>
             <Image
@@ -183,7 +185,10 @@ export default function ApartmentCard({
               variant="primary"
               size="sm"
               className="flex-1"
-              onClick={onAnalyze}
+              onClick={(e) => {
+                e.preventDefault();
+                onAnalyze?.();
+              }}
               loading={analyzing}
             >
               <Sparkles className="w-4 h-4 mr-1" />
@@ -192,13 +197,17 @@ export default function ApartmentCard({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(apartment.url, '_blank')}
+              onClick={(e) => {
+                e.preventDefault();
+                window.open(apartment.url, '_blank');
+              }}
             >
               View Listing
             </Button>
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </Link>
   );
 }
