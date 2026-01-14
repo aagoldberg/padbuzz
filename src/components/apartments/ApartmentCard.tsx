@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Sun, Maximize, DollarSign, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Apartment, AIAnalysis, ComparativeStats } from '@/types/apartment';
 import Button from '@/components/ui/Button';
 
@@ -44,8 +44,6 @@ export default function ApartmentCard({
   };
 
   const verdict = getVerdict();
-  const lightScore = apartment.storedImageAnalysis?.light;
-  const spaceScore = apartment.storedImageAnalysis?.spaciousness;
 
   // Clean summary text by removing room lists and other mechanical patterns
   const cleanSummary = (summary: string): string => {
@@ -138,61 +136,17 @@ export default function ApartmentCard({
             </div>
           </div>
 
-          {/* Signals Row - Always show structure, scores optional */}
-          <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-gray-100 mb-4">
-            <div className="flex flex-col items-center justify-center text-center">
-              <div className="flex items-center gap-1 text-gray-400 mb-0.5">
-                <Sun className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase font-bold tracking-wider">Light</span>
-              </div>
-              <span className={`text-sm font-bold ${lightScore && lightScore >= 7 ? 'text-gray-900' : 'text-gray-500'}`}>
-                {lightScore ? lightScore.toFixed(1) : '—'}
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center justify-center text-center border-l border-gray-100">
-              <div className="flex items-center gap-1 text-gray-400 mb-0.5">
-                <Maximize className="w-3.5 h-3.5" />
-                <span className="text-[10px] uppercase font-bold tracking-wider">Space</span>
-              </div>
-              <span className={`text-sm font-bold ${spaceScore && spaceScore >= 7 ? 'text-gray-900' : 'text-gray-500'}`}>
-                {spaceScore ? spaceScore.toFixed(1) : '—'}
-              </span>
-            </div>
-
-            <div className="flex flex-col items-center justify-center text-center border-l border-gray-100">
-                              <div className="flex items-center gap-1 text-gray-400 mb-0.5">
-                                <DollarSign className="w-3.5 h-3.5" />
-                                <span className="text-[10px] uppercase font-bold tracking-wider">Value</span>
-                              </div>
-                              <span className={`text-sm font-bold ${dealScore && dealScore >= 80 ? 'text-green-700' : 'text-gray-900'}`}>
-                                {dealScore || '-'} 
-                              </span>
-                            </div>          </div>
-
-          {/* The Take - Always show insight */}
+          {/* Vibe & Description */}
           <div className="mt-auto">
-            {analysis?.summary || apartment.storedImageAnalysis?.summary ? (
-              <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed font-medium">
-                <span className="text-indigo-600 font-bold mr-1">The Take:</span>
-                {cleanSummary(analysis?.summary || apartment.storedImageAnalysis?.summary || '')}
-              </p>
-            ) : apartment.storedImageAnalysis?.vibe ? (
-              <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed font-medium">
-                <span className="text-indigo-600 font-bold mr-1">Vibe:</span>
+            {apartment.storedImageAnalysis?.vibe && (
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wide mb-1">
                 {apartment.storedImageAnalysis.vibe}
               </p>
-            ) : (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  onAnalyze?.();
-                }}
-                className="text-xs text-indigo-600 font-semibold hover:text-indigo-700 flex items-center"
-              >
-                <Sparkles className="w-3 h-3 mr-1" />
-                See why this made the cut
-              </button>
+            )}
+            {(analysis?.summary || apartment.storedImageAnalysis?.summary) && (
+              <p className="text-xs text-gray-600 line-clamp-3 leading-relaxed">
+                {cleanSummary(analysis?.summary || apartment.storedImageAnalysis?.summary || '')}
+              </p>
             )}
           </div>
         </div>
