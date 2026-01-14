@@ -8,27 +8,52 @@ import {
 } from '../types';
 
 // Apify StreetEasy listing format (from their scraper output)
-interface ApifyStreetEasyListing {
-  url: string;
-  title?: string;
-  price?: number | string;
-  address?: string;
-  neighborhood?: string;
-  borough?: string;
-  beds?: number | string;
-  baths?: number | string;
-  sqft?: number | string;
-  description?: string;
-  images?: string[];
-  amenities?: string[];
-  broker?: string;
-  brokerCompany?: string;
-  noFee?: boolean;
-  availableDate?: string;
+// The scraper returns GraphQL-style nested data
+interface ApifyStreetEasyPhoto {
+  __typename: string;
+  key: string;
+}
+
+interface ApifyStreetEasyNode {
+  __typename: string;
+  id: string;
+  areaName?: string;
+  availableAt?: string;
+  bedroomCount?: number;
   buildingType?: string;
-  yearBuilt?: number;
-  // Additional fields Apify might return
-  [key: string]: unknown;
+  fullBathroomCount?: number;
+  halfBathroomCount?: number;
+  furnished?: boolean;
+  geoPoint?: {
+    __typename: string;
+    latitude: number;
+    longitude: number;
+  };
+  hasTour3d?: boolean;
+  hasVideos?: boolean;
+  isNewDevelopment?: boolean;
+  leaseTermMonths?: number;
+  livingAreaSize?: number;
+  mediaAssetCount?: number;
+  monthsFree?: number;
+  noFee?: boolean;
+  netEffectivePrice?: number;
+  photos?: ApifyStreetEasyPhoto[];
+  price?: number;
+  sourceGroupLabel?: string;
+  sourceType?: string;
+  status?: string;
+  street?: string;
+  unit?: string;
+  urlPath?: string;
+}
+
+interface ApifyStreetEasyListing {
+  __typename: string;
+  node: ApifyStreetEasyNode;
+  amenitiesMatch?: unknown;
+  matchedAmenities?: unknown;
+  missingAmenities?: unknown;
 }
 
 interface ApifyRunResponse {
@@ -83,15 +108,22 @@ export class ApifyStreetEasyAdapter implements SourceAdapter {
   }): Promise<ListingUrlResult[]> {
     const listings = await this.fetchFromApify(params);
 
-    return listings.map(listing => ({
-      url: listing.url,
-      sourceListingId: this.extractListingId(listing.url),
-      metadata: {
-        price: listing.price,
-        beds: listing.beds,
-        neighborhood: listing.neighborhood,
-      },
-    }));
+    return listings.map(listing => {
+      const node = listing.node;
+      const url = node?.urlPath
+        ? `https://streeteasy.com${node.urlPath}`
+        : `https://streeteasy.com/rental/${node?.id || ''}`;
+
+      return {
+        url,
+        sourceListingId: node?.id,
+        metadata: {
+          price: node?.price,
+          beds: node?.bedroomCount,
+          neighborhood: node?.areaName,
+        },
+      };
+    });
   }
 
   /**
@@ -289,47 +321,64 @@ export class ApifyStreetEasyAdapter implements SourceAdapter {
    * Convert Apify listing to our normalized format
    */
   private normalizeApifyListing(apify: ApifyStreetEasyListing): NormalizedListing {
-    const price = this.parsePrice(apify.price);
-    const beds = this.parseBeds(apify.beds);
-    const baths = this.parseBaths(apify.baths);
-    const sqft = this.parseSqft(apify.sqft);
-
-    // Infer borough from neighborhood if not provided
-    let borough = apify.borough;
-    if (!borough && apify.neighborhood) {
-      borough = this.inferBoroughFromNeighborhood(apify.neighborhood);
+    const node = apify.node;
+    if (!node) {
+      throw new Error('Invalid Apify listing: missing node');
     }
+
+    const price = node.price || node.netEffectivePrice || 0;
+    const beds = node.bedroomCount || 0;
+    const baths = (node.fullBathroomCount || 0) + (node.halfBathroomCount || 0) * 0.5;
+    const sqft = node.livingAreaSize || undefined;
+
+    // Build the full URL
+    const sourceUrl = node.urlPath
+      ? `https://streeteasy.com${node.urlPath}`
+      : `https://streeteasy.com/rental/${node.id}`;
+
+    // Build image URLs from photo keys
+    const images = (node.photos || []).map(photo =>
+      `https://photos.zillowstatic.com/fp/${photo.key}-se_extra_large_1500_800.webp`
+    );
+
+    // Build address from street + unit
+    const addressText = node.unit
+      ? `${node.street || ''} #${node.unit}`
+      : node.street || '';
+
+    // Infer borough from neighborhood
+    const borough = this.inferBoroughFromNeighborhood(node.areaName || '');
 
     return {
       listingId: uuidv4(),
       sourceId: this.sourceId,
-      sourceListingId: this.extractListingId(apify.url),
-      sourceUrl: apify.url,
+      sourceListingId: node.id,
+      sourceUrl,
 
-      title: apify.title,
+      title: `${beds === 0 ? 'Studio' : `${beds}BR`} in ${node.areaName || 'NYC'}`,
       price,
       beds,
       baths,
-      sqft: sqft || undefined,
+      sqft,
 
-      addressText: apify.address || '',
-      addressNormalized: this.normalizeAddress(apify.address || ''),
-      neighborhood: apify.neighborhood,
+      addressText,
+      addressNormalized: this.normalizeAddress(addressText),
+      neighborhood: node.areaName,
       borough,
       city: 'New York',
       state: 'NY',
+      latitude: node.geoPoint?.latitude,
+      longitude: node.geoPoint?.longitude,
 
-      images: apify.images || [],
-      description: apify.description,
-      amenities: apify.amenities || [],
+      images,
+      amenities: [],
 
-      brokerName: apify.broker,
-      brokerCompany: apify.brokerCompany,
+      brokerCompany: node.sourceGroupLabel,
 
-      noFee: apify.noFee,
-      availableDate: apify.availableDate ? new Date(apify.availableDate) : undefined,
+      noFee: node.noFee,
+      availableDate: node.availableAt ? new Date(node.availableAt) : undefined,
 
-      status: 'active',
+      status: node.status === 'ACTIVE' ? 'active' : 'unknown',
       firstSeenAt: new Date(),
       lastSeenAt: new Date(),
       lastUpdatedAt: new Date(),
