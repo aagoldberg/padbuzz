@@ -134,12 +134,20 @@ function filterConcerns(
 // Clean up old-format summaries that have "Standouts:", "Notable:", "Watch for:" patterns
 function cleanSummary(summary: string): string {
   if (!summary) return summary;
-  // Remove "Standouts: ...", "Notable: ...", "Watch for: ..." patterns
+  // Remove mechanical/redundant patterns from old-format summaries
   return summary
+    // Remove room type lists at start: "living, kitchen, bedroom, bathroom."
+    .replace(/^(living|kitchen|bedroom|bathroom|amenity|outdoor|other)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other))*\.\s*/gi, '')
+    // Remove "Standouts:", "Notable:", "Notable features:", "Watch for:", "Note:" patterns
     .replace(/\s*Standouts?:\s*[^.]+\./gi, '')
-    .replace(/\s*Notable:\s*[^.]+\./gi, '')
+    .replace(/\s*Notable(\s+features)?:\s*[^.]+\./gi, '')
     .replace(/\s*Watch for:\s*[^.]+\./gi, '')
+    .replace(/\s*Note:\s*[^.]+\./gi, '')
+    // Remove "Photos show:" prefix
     .replace(/\s*Photos show:\s*/gi, '')
+    // Remove generic filler phrases
+    .replace(/\s*Very good condition with nice appeal\.\s*/gi, '')
+    .replace(/\s*Good condition overall\.\s*/gi, '')
     .trim();
 }
 
