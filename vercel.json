@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/ingestion/apify?action=fetch&maxListings=200",
-      "schedule": "0 */6 * * *"
+      "path": "/api/ingestion/apify?action=fetch&maxListings=100",
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/ingestion/analyze?limit=20",
