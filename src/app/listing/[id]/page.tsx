@@ -177,8 +177,12 @@ function cleanSummary(summary: string): string {
   // Remove mechanical/redundant patterns from old-format summaries
   return summary
     .trim()
-    // Remove room type lists: "living, kitchen, bedroom, bathroom." (all VLM room types)
-    .replace(/^\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room))*\.?\s*/gi, '')
+    // Remove room type lists in various formats
+    .replace(/^\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room)([,\/]\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room))*\.?\s*/gi, '')
+    // Also catch "rooftop, kitchen/bedroom/..." format
+    .replace(/^\s*(rooftop|living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|lobby|laundry|floorplan|room),?\s*(kitchen\/bedroom\/bathroom\/living\/gym\/pool\/rooftop\/lobby\/laundry\/outdoor\/amenity\/floorplan\/other)\.?\s*/gi, '')
+    // Remove "Excellent overall condition and appeal."
+    .replace(/^\s*Excellent overall condition and appeal\.\s*/gi, '')
     // Remove "Standouts:", "Notable:", "Notable features:", "Watch for:", "Note:" patterns
     .replace(/\s*Standouts?:\s*[^.]+\./gi, '')
     .replace(/\s*Notable(\s+features)?:\s*[^.]+\./gi, '')
