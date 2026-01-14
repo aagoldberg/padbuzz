@@ -630,16 +630,9 @@ export default function ListingDetailPage() {
               )}
             </div>
 
-            {/* Analyst Audit (The "Why") */}
+            {/* AI Analysis */}
             {listing.storedImageAnalysis && (
               <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
-                <div className="mb-8">
-                   <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
-                      <ClipboardDocumentListIcon className="w-6 h-6 text-gray-900" />
-                      Analyst Audit
-                   </h2>
-                </div>
-
                 <div className="space-y-10">
                    {/* Summary - Clean & Direct */}
                     <div>
