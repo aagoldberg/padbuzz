@@ -4,7 +4,30 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Share, Heart, MapPin, Calendar, Building2, User, Camera, ClipboardList, Check, AlertTriangle, ExternalLink, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share, Heart, MapPin, Calendar, Building2, User, Camera, ExternalLink } from 'lucide-react';
+import { 
+  CheckCircleIcon, 
+  ExclamationTriangleIcon, 
+  ClipboardDocumentListIcon,
+  SunIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
+  SparklesIcon,
+  BoltIcon,
+  PhotoIcon,
+  ShieldCheckIcon,
+  MoonIcon,
+  ClockIcon,
+  SpeakerXMarkIcon,
+  SpeakerWaveIcon,
+  WrenchScrewdriverIcon,
+  HeartIcon,
+  MapIcon,
+  CubeIcon,
+  Square3Stack3DIcon,
+  HandThumbUpIcon
+} from '@heroicons/react/24/outline';
+import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
 import Button from '@/components/ui/Button';
 
 interface Listing {
@@ -133,6 +156,33 @@ function Description({ text }: { text: string }) {
       )}
     </div>
   );
+}
+
+function getIconForItem(text: string, isStandout: boolean) {
+  const lower = text.toLowerCase();
+  
+  if (lower.includes('light') || lower.includes('windows') || lower.includes('sunny')) return <SunIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('space') || lower.includes('spacious') || lower.includes('ceilings') || lower.includes('layout')) return <ArrowsPointingOutIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('modern') || lower.includes('updated') || lower.includes('clean') || lower.includes('renovated')) return <SparklesIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('kitchen') || lower.includes('appliances') || lower.includes('dishwasher') || lower.includes('laundry')) return <BoltIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('view') || lower.includes('balcony') || lower.includes('outdoor')) return <PhotoIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('safe') || lower.includes('doorman') || lower.includes('secure') || lower.includes('concierge')) return <ShieldCheckIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('floor') || lower.includes('brick') || lower.includes('finish')) return <Square3Stack3DIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('pet')) return <HeartIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('subway') || lower.includes('transport') || lower.includes('location')) return <MapIcon className="w-5 h-5 text-green-600" />;
+  if (lower.includes('quiet')) return <SpeakerXMarkIcon className="w-5 h-5 text-green-600" />;
+  
+  // Trade-offs
+  if (!isStandout) {
+    if (lower.includes('small') || lower.includes('cramped') || lower.includes('tight')) return <ArrowsPointingInIcon className="w-5 h-5 text-red-500" />;
+    if (lower.includes('dark') || lower.includes('no natural light')) return <MoonIcon className="w-5 h-5 text-red-500" />;
+    if (lower.includes('dated') || lower.includes('old')) return <ClockIcon className="w-5 h-5 text-red-500" />;
+    if (lower.includes('noise') || lower.includes('loud')) return <SpeakerWaveIcon className="w-5 h-5 text-red-500" />;
+    if (lower.includes('wear') || lower.includes('damage') || lower.includes('repair')) return <WrenchScrewdriverIcon className="w-5 h-5 text-red-500" />;
+    return <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />;
+  }
+
+  return <CheckCircleSolidIcon className="w-5 h-5 text-green-600" />;
 }
 
 export default function ListingDetailPage() {
@@ -405,45 +455,40 @@ export default function ListingDetailPage() {
 
             {/* Analyst Audit (The "Why") */}
             {listing.storedImageAnalysis && (
-              <div className="bg-white rounded-2xl p-8 md:p-10 shadow-sm border border-gray-200">
-                <div className="flex items-center gap-3 mb-8">
-                   <div className="bg-gray-900 text-white p-2 rounded-lg">
-                      <ClipboardList className="w-5 h-5" />
-                   </div>
-                   <h2 className="text-xl font-bold tracking-tight text-gray-900 uppercase">Analyst Audit</h2>
+              <div className="bg-white rounded-2xl p-8 border border-gray-200 shadow-sm">
+                <div className="mb-8">
+                   <h2 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+                      <ClipboardDocumentListIcon className="w-6 h-6 text-gray-900" />
+                      Analyst Audit
+                   </h2>
                 </div>
 
                 <div className="space-y-10">
-                   {/* Summary - High Impact Editorial */}
-                    <div className="relative">
-                       <span className="absolute -top-4 -left-2 text-6xl text-gray-100 font-serif leading-none">&ldquo;</span>
-                       <div className="relative z-10">
-                          {listing.storedImageAnalysis.vibe && (
-                            <div className="inline-flex items-center gap-2 mb-4 px-2 py-0.5 bg-gray-900 text-white rounded text-[10px] font-black uppercase tracking-widest">
-                              VIBE: {listing.storedImageAnalysis.vibe}
-                            </div>
-                          )}
-                          <p className="text-gray-900 leading-snug font-bold text-xl md:text-3xl tracking-tight">
-                            {cleanSummary(listing.storedImageAnalysis.summary)}
-                          </p>
-                       </div>
+                   {/* Summary - Clean & Direct */}
+                    <div>
+                        {listing.storedImageAnalysis.vibe && (
+                          <div className="mb-2 text-sm font-semibold text-indigo-600 uppercase tracking-wide">
+                            {listing.storedImageAnalysis.vibe}
+                          </div>
+                        )}
+                        <p className="text-gray-900 text-xl leading-relaxed font-medium">
+                          {cleanSummary(listing.storedImageAnalysis.summary)}
+                        </p>
                     </div>
 
-                    {/* Metrics Dashboard - Clean Ledger Style */}
-                    <div className="py-8 border-t border-b border-gray-100">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
+                    {/* Metrics Dashboard - Airbnb Style */}
+                    <div className="flex justify-between items-start border-t border-b border-gray-100 py-8">
                         {[
                           { label: 'Light', val: listing.storedImageAnalysis.light },
                           { label: 'Space', val: listing.storedImageAnalysis.spaciousness },
-                          { label: 'Clean', val: listing.storedImageAnalysis.cleanliness },
-                          { label: 'Modern', val: listing.storedImageAnalysis.renovation },
+                          { label: 'Cleanliness', val: listing.storedImageAnalysis.cleanliness },
+                          { label: 'Modernity', val: listing.storedImageAnalysis.renovation },
                         ].map((metric) => (
-                          <div key={metric.label} className="flex flex-col">
-                            <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{metric.label}</div>
-                            <div className="text-3xl font-black text-gray-900 tracking-tighter">{metric.val?.toFixed(1) || '-'}</div>
+                          <div key={metric.label} className="flex flex-col items-center flex-1">
+                            <div className="text-4xl font-bold text-gray-900 mb-2">{metric.val?.toFixed(1) || '-'}</div>
+                            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{metric.label}</div>
                           </div>
                         ))}
-                      </div>
                     </div>
 
                     {/* Audit Columns: Standouts vs Trade-offs */}
@@ -451,16 +496,17 @@ export default function ListingDetailPage() {
                       <div className="grid md:grid-cols-2 gap-12">
                         {/* Standouts Column */}
                         {listing.storedImageAnalysis.features && listing.storedImageAnalysis.features.length > 0 && (
-                          <div className="space-y-6">
-                            <div className="flex items-center gap-2 pb-2 border-b-2 border-green-600 w-fit">
-                              <Check className="w-4 h-4 text-green-600" strokeWidth={3} />
-                              <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.15em]">Standouts</h4>
-                            </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6">
+                              Standouts
+                            </h4>
                             <ul className="space-y-4">
                               {listing.storedImageAnalysis.features.map((feature, i) => (
-                                <li key={i} className="text-sm font-bold text-gray-800 flex items-start gap-3">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
-                                  <span className="leading-tight">{feature}</span>
+                                <li key={i} className="flex items-start gap-3 text-gray-700">
+                                  <div className="flex-shrink-0 mt-0.5">
+                                    {getIconForItem(feature, true)}
+                                  </div>
+                                  <span className="text-base">{feature}</span>
                                 </li>
                               ))}
                             </ul>
@@ -468,22 +514,29 @@ export default function ListingDetailPage() {
                         )}
 
                         {/* Trade-offs Column */}
-                        {listing.storedImageAnalysis.concerns && listing.storedImageAnalysis.concerns.length > 0 && (
-                          <div className="space-y-6">
-                            <div className="flex items-center gap-2 pb-2 border-b-2 border-red-600 w-fit">
-                              <AlertTriangle className="w-4 h-4 text-red-600" strokeWidth={3} />
-                              <h4 className="text-xs font-black text-gray-900 uppercase tracking-[0.15em]">Trade-offs</h4>
+                        {(() => {
+                          const filteredConcerns = filterConcerns(
+                            listing.storedImageAnalysis.concerns || [],
+                            listing.storedImageAnalysis
+                          );
+                          return filteredConcerns.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6">
+                                Trade-offs
+                              </h4>
+                              <ul className="space-y-4">
+                                {filteredConcerns.map((concern, i) => (
+                                  <li key={i} className="flex items-start gap-3 text-gray-700">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      {getIconForItem(concern, false)}
+                                    </div>
+                                    <span className="text-base">{concern}</span>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
-                            <ul className="space-y-4">
-                              {listing.storedImageAnalysis.concerns.map((concern, i) => (
-                                <li key={i} className="text-sm font-bold text-gray-800 flex items-start gap-3">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0" />
-                                  <span className="leading-tight">{concern}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     ) : null}
                 </div>
