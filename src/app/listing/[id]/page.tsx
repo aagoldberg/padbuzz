@@ -803,20 +803,17 @@ export default function ListingDetailPage() {
                <p className="text-gray-600 mb-4 font-medium">
                  {listing.addressText}
                </p>
-               {listing.latitude && listing.longitude && (
-                 <a
-                    href={`https://www.google.com/maps?q=${listing.latitude},${listing.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full h-32 bg-gray-100 rounded-xl relative overflow-hidden group"
-                  >
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/5 group-hover:bg-black/10 transition-colors">
-                       <span className="text-xs font-bold text-gray-600 bg-white/80 backdrop-blur px-3 py-1 rounded-full">
-                         View on Maps
-                       </span>
-                    </div>
-                  </a>
-               )}
+               <div className="rounded-xl overflow-hidden">
+                 <iframe
+                   src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.addressText || listing.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                   width="100%"
+                   height="200"
+                   style={{ border: 0 }}
+                   allowFullScreen
+                   loading="lazy"
+                   referrerPolicy="no-referrer-when-downgrade"
+                 />
+               </div>
             </div>
           </div>
         </div>
