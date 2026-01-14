@@ -868,7 +868,7 @@ export default function ListingDetailPage() {
                    {getNeighborhoodBlurb(listing.neighborhood)}
                  </p>
                )}
-               <div className="rounded-xl overflow-hidden mb-4">
+               <div className="rounded-xl overflow-hidden">
                  <iframe
                    src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.addressText)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                    width="100%"
@@ -879,15 +879,6 @@ export default function ListingDetailPage() {
                    referrerPolicy="no-referrer-when-downgrade"
                  />
                </div>
-               {/* Walk Score */}
-               <a
-                 href={`https://www.walkscore.com/score/${encodeURIComponent(listing.addressText)}`}
-                 target="_blank"
-                 rel="noopener noreferrer"
-                 className="block text-center text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-               >
-                 View Walk Score →
-               </a>
             </div>
           </div>
         </div>
