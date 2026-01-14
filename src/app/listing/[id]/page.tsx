@@ -547,18 +547,6 @@ export default function ListingDetailPage() {
                    </span>
                 </div>
               )}
-              
-              <div className="text-right">
-                <div className="text-3xl font-extrabold text-gray-900">
-                  {formatPrice(listing.price)}
-                  <span className="text-lg font-medium text-gray-500 ml-1">/mo</span>
-                </div>
-                {listing.netEffectivePrice && listing.netEffectivePrice !== listing.price && (
-                  <div className="text-green-700 font-bold text-sm">
-                    {formatPrice(listing.netEffectivePrice)} net
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
