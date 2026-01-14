@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Sparkles, Bell, Settings, Info, ChevronRight, TrendingUp, Sun, Clock } from 'lucide-react';
+import { Home, Sparkles, Bell, Settings, Info, ChevronRight, TrendingUp, Sun, Clock, Heart } from 'lucide-react';
 import Link from 'next/link';
 import SearchFilters from '@/components/search/SearchFilters';
 import PreferencesModal from '@/components/search/PreferencesModal';
 import ApartmentCard from '@/components/apartments/ApartmentCard';
 import Button from '@/components/ui/Button';
 import { Apartment, ApartmentWithAnalysis, SearchFilters as Filters, UserPreferences, AIAnalysis } from '@/types/apartment';
+import { useSavedListingsContext } from '@/contexts/SavedListingsContext';
 
 export default function HomePage() {
   const [apartments, setApartments] = useState<ApartmentWithAnalysis[]>([]);
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [bestValue, setBestValue] = useState<ApartmentWithAnalysis[]>([]);
   const [brightSpacious, setBrightSpacious] = useState<ApartmentWithAnalysis[]>([]);
   const [latest, setLatest] = useState<ApartmentWithAnalysis[]>([]);
+  const { count: savedCount } = useSavedListingsContext();
 
   const fetchApartments = useCallback(async () => {
     setLoading(true);
@@ -175,7 +177,19 @@ export default function HomePage() {
               </span>
             </Link>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <Link href="/saved" className="relative">
+                <Button variant="ghost" size="sm" className="text-gray-600">
+                  <Heart className={`w-4 h-4 ${savedCount > 0 ? 'text-red-500 fill-current' : ''}`} />
+                  <span className="hidden sm:inline ml-1.5">Saved</span>
+                  {savedCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {savedCount > 9 ? '9+' : savedCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+
               <Button
                 variant={preferences ? 'ghost' : 'primary'}
                 size="sm"
@@ -183,7 +197,7 @@ export default function HomePage() {
                 className={preferences ? 'text-gray-600' : ''}
               >
                 <Sparkles className="w-4 h-4 mr-1.5" />
-                {preferences ? 'Preferences' : 'Setup AI'}
+                <span className="hidden sm:inline">{preferences ? 'Preferences' : 'Setup AI'}</span>
               </Button>
 
               <Link href="/about" className="hidden sm:block">
@@ -197,7 +211,7 @@ export default function HomePage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 pb-24 sm:pb-10">
         
         {/* Trusted Analyst Hero */}
         <div className="mb-12">

@@ -3,10 +3,11 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart } from 'lucide-react';
 import { SunIcon, ArrowsPointingOutIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/solid';
 import { Apartment, AIAnalysis, ComparativeStats } from '@/types/apartment';
 import Button from '@/components/ui/Button';
+import { useSavedListingsContext } from '@/contexts/SavedListingsContext';
 
 interface ApartmentCardProps {
   apartment: Apartment;
@@ -26,6 +27,21 @@ export default function ApartmentCard({
   analyzing,
 }: ApartmentCardProps) {
   const [imageIndex, setImageIndex] = useState(0);
+  const { isSaved, toggleSaved } = useSavedListingsContext();
+  const saved = isSaved(apartment._id);
+
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleSaved({
+      id: apartment._id,
+      price: apartment.price,
+      address: apartment.address,
+      neighborhood: apartment.neighborhood,
+      bedrooms: apartment.bedrooms,
+      image: apartment.images?.[0],
+    });
+  };
 
   const getVerdict = () => {
     // Priority: Analysis Score -> Deal Score -> "Not Analyzed"
@@ -68,9 +84,22 @@ export default function ApartmentCard({
                 </div>
               )}
 
+              {/* Save Button */}
+              <button
+                onClick={handleSaveClick}
+                className={`absolute top-4 right-4 p-2 rounded-full transition-all ${
+                  saved
+                    ? 'bg-red-500 text-white'
+                    : 'bg-black/50 text-white hover:bg-black/70'
+                }`}
+                aria-label={saved ? 'Remove from saved' : 'Save listing'}
+              >
+                <Heart className={`w-5 h-5 ${saved ? 'fill-current' : ''}`} />
+              </button>
+
               {/* No Fee Badge */}
               {apartment.noFee && (
-                <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border border-white/10">
+                <div className="absolute bottom-4 left-4 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border border-white/10">
                   No Fee
                 </div>
               )}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { mockApartments } from '@/lib/mock-data';
 import { SearchFilters, Apartment } from '@/types/apartment';
+import { ObjectId } from 'mongodb';
 
 const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true';
 const USE_INGESTED_DATA = process.env.USE_INGESTED_DATA !== 'false'; // Default to ingested StreetEasy data
@@ -22,6 +23,29 @@ export async function GET(request: NextRequest) {
       noFeeOnly: searchParams.get('noFeeOnly') === 'true',
       rentStabilizedOnly: searchParams.get('rentStabilizedOnly') === 'true',
     };
+
+    // Handle fetching by specific IDs
+    const idsParam = searchParams.get('ids');
+    if (idsParam && !USE_MOCK_DATA) {
+      const ids = idsParam.split(',').filter(Boolean);
+      const { db } = await connectToDatabase();
+      const collection = db.collection('ingestion_listings');
+
+      const objectIds = ids
+        .filter(id => ObjectId.isValid(id))
+        .map(id => new ObjectId(id));
+
+      const rawApartments = await collection
+        .find({ _id: { $in: objectIds } })
+        .toArray();
+
+      const apartments = rawApartments.map(transformIngestedListing);
+
+      return NextResponse.json({
+        apartments,
+        pagination: { page: 1, limit: ids.length, total: apartments.length, totalPages: 1 },
+      });
+    }
 
     if (USE_MOCK_DATA) {
       const filtered = filterMockApartments(mockApartments, filters);
