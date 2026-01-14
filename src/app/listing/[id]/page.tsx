@@ -177,7 +177,7 @@ function cleanSummary(summary: string): string {
   // Remove mechanical/redundant patterns from old-format summaries
   return summary
     // Remove room type lists at start: "living, kitchen, bedroom, bathroom."
-    .replace(/^(living|kitchen|bedroom|bathroom|amenity|outdoor|other)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other))*\.\s*/gi, '')
+    .replace(/^(living|kitchen|bedroom|bathroom|amenity|outdoor|other)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other))*\.?\s*/gi, '')
     // Remove "Standouts:", "Notable:", "Notable features:", "Watch for:", "Note:" patterns
     .replace(/\s*Standouts?:\s*[^.]+\./gi, '')
     .replace(/\s*Notable(\s+features)?:\s*[^.]+\./gi, '')
@@ -188,6 +188,12 @@ function cleanSummary(summary: string): string {
     // Remove generic filler phrases
     .replace(/\s*Very good condition with nice appeal\.\s*/gi, '')
     .replace(/\s*Good condition overall\.\s*/gi, '')
+    // Remove mentions of staged items (furniture, art, decor that won't come with apt)
+    .replace(/,?\s*(and )?(a |the )?(large |small )?(abstract |modern )?(piece|art|artwork|painting|furnishings?|furniture|decor|decorations?|rug|throw pillows?|plants?|accessories)(\s+that[^,\.]+)?/gi, '')
+    .replace(/,?\s*comfortable furnishings/gi, '')
+    .replace(/\s+,/g, ',') // clean up orphaned commas
+    .replace(/,\s*\./g, '.') // clean up comma before period
+    .replace(/\s{2,}/g, ' ') // collapse multiple spaces
     .trim();
 }
 
