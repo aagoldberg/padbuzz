@@ -109,6 +109,64 @@ function extractBuildingName(url: string): string | null {
   return null;
 }
 
+// NYC neighborhood descriptions
+const NEIGHBORHOOD_BLURBS: Record<string, string> = {
+  'greenpoint': 'A hip waterfront neighborhood with Polish roots, indie coffee shops, and stunning Manhattan views.',
+  'williamsburg': 'Brooklyn\'s creative hub with trendy restaurants, vintage shops, and a vibrant nightlife scene.',
+  'bushwick': 'An artsy neighborhood known for street art, warehouse parties, and diverse food options.',
+  'bed-stuy': 'Historic brownstones, strong community feel, and a growing food and bar scene.',
+  'bedford-stuyvesant': 'Historic brownstones, strong community feel, and a growing food and bar scene.',
+  'crown heights': 'A diverse neighborhood with Caribbean influences, beautiful architecture, and Prospect Park access.',
+  'prospect heights': 'Tree-lined streets near Prospect Park and the Brooklyn Museum. Family-friendly with great dining.',
+  'park slope': 'Quintessential Brooklyn with brownstones, excellent schools, and a laid-back family vibe.',
+  'cobble hill': 'Charming and quiet with boutique shops, cafes, and easy Manhattan access.',
+  'carroll gardens': 'Old-school Italian roots meet young families. Great restaurants and tree-lined streets.',
+  'boerum hill': 'Brownstone Brooklyn at its finest. Near downtown but with a neighborhood feel.',
+  'dumbo': 'Converted warehouses with stunning bridge views. Tech startups and waterfront parks.',
+  'downtown brooklyn': 'Urban and convenient with shopping, transit hub, and new high-rises.',
+  'fort greene': 'Cultural hub near BAM with beautiful park, diverse dining, and historic homes.',
+  'clinton hill': 'Stately homes, Pratt Institute, and a quieter alternative to Fort Greene.',
+  'gowanus': 'Industrial-chic with breweries, creative spaces, and the canal cleanup bringing new energy.',
+  'red hook': 'Waterfront charm, artist studios, and great food. A bit off the beaten path.',
+  'sunset park': 'Diverse community with amazing views from the park, Chinatown eats, and Industry City.',
+  'bay ridge': 'Suburban feel with waterfront views, diverse dining, and strong community ties.',
+  'brighton beach': 'Little Odessa by the sea. Russian bakeries, boardwalk, and beach access.',
+  'coney island': 'Iconic boardwalk, amusement parks, and beach living at accessible prices.',
+  'flatbush': 'Caribbean culture, Victorian homes, and a tight-knit community.',
+  'ditmas park': 'Stunning Victorian houses, tree-lined streets, and a small-town feel in Brooklyn.',
+  'kensington': 'Quiet, diverse, and affordable with easy access to Prospect Park.',
+  'upper east side': 'Classic Manhattan elegance with museums, Central Park, and upscale dining.',
+  'upper west side': 'Cultural institutions, Riverside Park, and a neighborhood feel in Manhattan.',
+  'harlem': 'Rich history, soul food, jazz clubs, and beautiful brownstones.',
+  'east harlem': 'El Barrio\'s Latin flavor with authentic food, murals, and East River access.',
+  'washington heights': 'Dominican culture, Fort Tryon Park, and The Cloisters museum.',
+  'inwood': 'Manhattan\'s northernmost tip with parks, affordable rents, and community feel.',
+  'chelsea': 'Art galleries, High Line access, and vibrant LGBTQ+ scene.',
+  'hell\'s kitchen': 'Theater district adjacent with diverse restaurants and Hudson River parks.',
+  'midtown': 'The heart of Manhattan. Convenient to everything but expect the bustle.',
+  'murray hill': 'Young professionals, good bars, and easy Midtown commute.',
+  'gramercy': 'Elegant and quiet with a private park and classic NYC charm.',
+  'east village': 'Downtown edge with dive bars, eclectic food, and counterculture history.',
+  'west village': 'Charming streets, celeb sightings, and some of the best restaurants in the city.',
+  'soho': 'Cast-iron architecture, high-end shopping, and gallery scene.',
+  'tribeca': 'Converted lofts, celebrity neighbors, and excellent restaurants.',
+  'lower east side': 'Historic immigrant neighborhood now known for nightlife and trendy eateries.',
+  'financial district': 'Historic streets, waterfront access, and easy commute for finance workers.',
+  'battery park city': 'Planned community with parks, river views, and family-friendly vibe.',
+  'long island city': 'Waterfront Queens with stunning skyline views and growing arts scene.',
+  'astoria': 'Greek heritage meets diverse culture. Great food, beer gardens, and park access.',
+  'jackson heights': 'One of the most diverse neighborhoods in the world. Incredible food from every continent.',
+  'flushing': 'Vibrant Asian community with amazing food and cultural experiences.',
+  'jersey city': 'Manhattan views without Manhattan prices. Growing food and arts scene.',
+  'hoboken': 'Walkable waterfront city with young professionals and excellent transit.',
+};
+
+function getNeighborhoodBlurb(neighborhood: string | undefined): string | null {
+  if (!neighborhood) return null;
+  const key = neighborhood.toLowerCase().trim();
+  return NEIGHBORHOOD_BLURBS[key] || null;
+}
+
 // Calculate days on market
 function getDaysOnMarket(firstSeenAt: string): number {
   const firstSeen = new Date(firstSeenAt);
@@ -800,20 +858,34 @@ export default function ListingDetailPage() {
                   <MapPin className="w-5 h-5 text-gray-400" />
                   <h3 className="font-bold text-gray-900">Location</h3>
                </div>
-               <p className="text-gray-600 mb-4 font-medium">
+               <p className="text-gray-600 mb-2 font-medium">
                  {listing.addressText}
                </p>
-               <div className="rounded-xl overflow-hidden">
+               {getNeighborhoodBlurb(listing.neighborhood) && (
+                 <p className="text-gray-500 text-sm mb-4 italic">
+                   {getNeighborhoodBlurb(listing.neighborhood)}
+                 </p>
+               )}
+               <div className="rounded-xl overflow-hidden mb-4">
                  <iframe
-                   src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.addressText || listing.address)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                   src={`https://maps.google.com/maps?q=${encodeURIComponent(listing.addressText)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                    width="100%"
-                   height="200"
+                   height="180"
                    style={{ border: 0 }}
                    allowFullScreen
                    loading="lazy"
                    referrerPolicy="no-referrer-when-downgrade"
                  />
                </div>
+               {/* Walk Score */}
+               <a
+                 href={`https://www.walkscore.com/score/${encodeURIComponent(listing.addressText)}`}
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="block text-center text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+               >
+                 View Walk Score →
+               </a>
             </div>
           </div>
         </div>
