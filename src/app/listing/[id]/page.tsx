@@ -177,8 +177,8 @@ function cleanSummary(summary: string): string {
   // Remove mechanical/redundant patterns from old-format summaries
   return summary
     .trim()
-    // Remove room type lists: "living, kitchen, bedroom, bathroom."
-    .replace(/^\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other))*\.?\s*/gi, '')
+    // Remove room type lists: "living, kitchen, bedroom, bathroom." (all VLM room types)
+    .replace(/^\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room))*\.?\s*/gi, '')
     // Remove "Standouts:", "Notable:", "Notable features:", "Watch for:", "Note:" patterns
     .replace(/\s*Standouts?:\s*[^.]+\./gi, '')
     .replace(/\s*Notable(\s+features)?:\s*[^.]+\./gi, '')
