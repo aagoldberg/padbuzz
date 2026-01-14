@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { SunIcon, ArrowsPointingOutIcon, SparklesIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/solid';
 import { Apartment, AIAnalysis, ComparativeStats } from '@/types/apartment';
 import Button from '@/components/ui/Button';
 
@@ -122,11 +123,22 @@ export default function ApartmentCard({
             </div>
           </div>
 
-          {/* Vibe */}
-          {apartment.storedImageAnalysis?.vibe && (
-            <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-wide mt-auto">
-              {apartment.storedImageAnalysis.vibe}
-            </p>
+          {/* Quality Icons - show only for high scores */}
+          {apartment.storedImageAnalysis && (
+            <div className="flex items-center gap-2 mt-auto">
+              {(apartment.storedImageAnalysis.light ?? 0) >= 8 && (
+                <SunIcon className="w-4 h-4 text-amber-400" title="Great light" />
+              )}
+              {(apartment.storedImageAnalysis.spaciousness ?? 0) >= 8 && (
+                <ArrowsPointingOutIcon className="w-4 h-4 text-blue-400" title="Spacious" />
+              )}
+              {(apartment.storedImageAnalysis.cleanliness ?? 0) >= 8 && (
+                <SparklesIcon className="w-4 h-4 text-emerald-400" title="Very clean" />
+              )}
+              {(apartment.storedImageAnalysis.renovation ?? 0) >= 8 && (
+                <WrenchScrewdriverIcon className="w-4 h-4 text-violet-400" title="Updated" />
+              )}
+            </div>
           )}
         </div>
       </div>
