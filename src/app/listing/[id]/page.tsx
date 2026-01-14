@@ -672,29 +672,34 @@ export default function ListingDetailPage() {
               <Description text={listing.description || enrichedDetails?.description || 'No description available.'} />
 
               {/* Building Amenities List */}
-              {((listing.amenities && listing.amenities.length > 0) || enrichedDetails?.buildingAmenities) && (
-                <div className="border-t pt-8">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">Amenities</h3>
-                  {loadingDetails ? (
-                    <div className="text-gray-400 italic">Loading details...</div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-                      {(enrichedDetails?.buildingAmenities?.services || []).map((a, i) => (
-                        <div key={i} className="flex items-center gap-3 text-gray-700">
-                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                           {a}
-                        </div>
-                      ))}
-                      {(!enrichedDetails?.buildingAmenities && listing.amenities || []).map((a, i) => (
-                         <div key={i} className="flex items-center gap-3 text-gray-700">
-                           <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                           {a}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              {(() => {
+                const hasEnrichedAmenities = enrichedDetails?.buildingAmenities?.services?.length;
+                const hasListingAmenities = listing.amenities && listing.amenities.length > 0;
+                if (!hasEnrichedAmenities && !hasListingAmenities) return null;
+                return (
+                  <div className="border-t pt-8">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4">Amenities</h3>
+                    {loadingDetails ? (
+                      <div className="text-gray-400 italic">Loading details...</div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                        {(enrichedDetails?.buildingAmenities?.services || []).map((a, i) => (
+                          <div key={i} className="flex items-center gap-3 text-gray-700">
+                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                            {a}
+                          </div>
+                        ))}
+                        {(!enrichedDetails?.buildingAmenities && listing.amenities || []).map((a, i) => (
+                          <div key={i} className="flex items-center gap-3 text-gray-700">
+                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                            {a}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
