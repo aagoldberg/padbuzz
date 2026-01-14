@@ -1,6 +1,7 @@
 import { SourceAdapter, SourceConfig } from '../types';
 import { CraigslistAdapter } from './craigslist';
 import { GenericBrokerAdapter } from './generic-broker';
+import { ApifyStreetEasyAdapter } from './apify-streeteasy';
 
 // Adapter registry
 type AdapterFactory = (config: SourceConfig) => SourceAdapter;
@@ -8,6 +9,7 @@ type AdapterFactory = (config: SourceConfig) => SourceAdapter;
 const adapterFactories: Record<string, AdapterFactory> = {
   'craigslist': (config) => new CraigslistAdapter(config),
   'generic-broker': (config) => new GenericBrokerAdapter(config),
+  'apify-streeteasy': (config) => new ApifyStreetEasyAdapter(config),
 
   // Placeholder adapters for future implementation
   'renthop': (config) => new GenericBrokerAdapter(config), // TODO: Custom RentHop adapter
@@ -49,4 +51,5 @@ export function registerAdapter(parserName: string, factory: AdapterFactory): vo
 // Re-export adapter classes
 export { CraigslistAdapter } from './craigslist';
 export { GenericBrokerAdapter } from './generic-broker';
+export { ApifyStreetEasyAdapter } from './apify-streeteasy';
 export { BaseAdapter } from './base';

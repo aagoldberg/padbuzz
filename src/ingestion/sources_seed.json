@@ -1,8 +1,42 @@
 {
   "$schema": "./sources.schema.json",
-  "version": "1.0.0",
-  "lastUpdated": "2025-01-13",
+  "version": "1.1.0",
+  "lastUpdated": "2026-01-13",
   "sources": [
+    {
+      "id": "streeteasy-apify",
+      "name": "StreetEasy (via Apify)",
+      "type": "marketplace",
+      "enabled": true,
+      "priority": 0,
+      "urls": {
+        "base": "https://streeteasy.com",
+        "searchPath": "/for-rent/nyc",
+        "apiEndpoint": "memo23~apify-streeteasy-cheerio"
+      },
+      "dataAvailability": {
+        "price": "high",
+        "beds": "high",
+        "baths": "high",
+        "sqft": "high",
+        "address": "high",
+        "images": "high",
+        "description": "high",
+        "broker": "high"
+      },
+      "scrapeConfig": {
+        "difficulty": "low",
+        "rateLimit": {
+          "requestsPerMinute": 60,
+          "delayMs": 0,
+          "jitterMs": 0
+        },
+        "refreshIntervalMinutes": 60,
+        "parser": "apify-streeteasy",
+        "requiresJs": false
+      },
+      "notes": "Primary source. Uses Apify's StreetEasy scraper. Requires APIFY_API_TOKEN env var."
+    },
     {
       "id": "craigslist-nyc",
       "name": "Craigslist NYC",
@@ -589,12 +623,7 @@
     "'landlord' 'apartments available' Brooklyn"
   ],
   "excludedDomains": [
-    "zillow.com",
-    "streeteasy.com",
-    "trulia.com",
-    "hotpads.com",
     "facebook.com",
-    "marketplace.facebook.com",
-    "realtor.com"
+    "marketplace.facebook.com"
   ]
 }
