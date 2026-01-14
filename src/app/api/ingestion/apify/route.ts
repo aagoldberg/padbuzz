@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSourceById, upsertListing, recordSourceMetric } from '@/ingestion/db';
+import { getSourceById, upsertListing, recordSourceMetric, markListingsDelisted } from '@/ingestion/db';
 import { ApifyStreetEasyAdapter } from '@/ingestion/adapters/apify-streeteasy';
 import { SourceConfig } from '@/ingestion/types';
 
@@ -91,12 +91,17 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // Mark listings not seen in this fetch as potentially delisted
+        const activeUrls = listings.map(l => l.sourceUrl);
+        const delisted = await markListingsDelisted('streeteasy-apify', activeUrls);
+
         // Record metrics
         await recordSourceMetric('streeteasy-apify', {
           fetchAttempts: 1,
           fetchSuccesses: 1,
           listingsFound: listings.length,
           newListings: saved,
+          delistedListings: delisted,
         });
 
         return NextResponse.json({
@@ -104,6 +109,7 @@ export async function POST(request: NextRequest) {
           total: listings.length,
           saved,
           updated,
+          delisted,
           errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
           sample: listings.slice(0, 3).map(l => ({
             url: l.sourceUrl,

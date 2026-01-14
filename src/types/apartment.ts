@@ -18,6 +18,7 @@ export interface Apartment {
   createdAt: Date;
   updatedAt: Date;
   scrapeStatus?: string;
+  storedImageAnalysis?: StoredImageAnalysis;
 }
 
 export interface ApartmentWithAnalysis extends Apartment {

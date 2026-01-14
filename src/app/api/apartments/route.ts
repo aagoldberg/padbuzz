@@ -4,7 +4,7 @@ import { mockApartments } from '@/lib/mock-data';
 import { SearchFilters, Apartment } from '@/types/apartment';
 
 const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true';
-const USE_SCRAPED_DATA = process.env.USE_SCRAPED_DATA !== 'false'; // Default to scraped data
+const USE_INGESTED_DATA = process.env.USE_INGESTED_DATA !== 'false'; // Default to ingested StreetEasy data
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,20 +41,21 @@ export async function GET(request: NextRequest) {
     const query = buildQuery(filters);
     const { db } = await connectToDatabase();
 
-    // Use scraped listings (Craigslist with real images) by default
-    if (USE_SCRAPED_DATA) {
-      const scrapedCollection = db.collection('scraped_listings');
-      const scrapedQuery = {
-        ...query,
+    // Use ingested StreetEasy listings by default
+    if (USE_INGESTED_DATA) {
+      const ingestedCollection = db.collection('ingestion_listings');
+      const ingestedQuery = {
+        ...buildIngestedQuery(filters),
         images: { $exists: true, $ne: [] },
+        status: 'active',
       };
 
       const [rawApartments, total] = await Promise.all([
-        scrapedCollection.find(scrapedQuery).sort({ scrapedAt: -1 }).skip(skip).limit(limit).toArray(),
-        scrapedCollection.countDocuments(scrapedQuery),
+        ingestedCollection.find(ingestedQuery).sort({ lastSeenAt: -1 }).skip(skip).limit(limit).toArray(),
+        ingestedCollection.countDocuments(ingestedQuery),
       ]);
 
-      const apartments = rawApartments.map(transformScrapedListing);
+      const apartments = rawApartments.map(transformIngestedListing);
 
       return NextResponse.json({
         apartments,
@@ -112,7 +113,67 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Transform scraped Craigslist data to our Apartment interface
+// Transform ingested StreetEasy data to our Apartment interface
+function transformIngestedListing(doc: Record<string, unknown>): Apartment {
+  const storedAnalysis = doc.storedImageAnalysis as {
+    overallQuality?: number;
+    cleanliness?: number;
+    light?: number;
+    renovation?: number;
+  } | undefined;
+
+  return {
+    _id: (doc._id as { toString: () => string }).toString(),
+    url: doc.sourceUrl as string || '',
+    address: doc.addressText as string || '',
+    neighborhood: doc.neighborhood as string || 'NYC',
+    borough: doc.borough as string || 'Manhattan',
+    price: doc.price as number || 0,
+    bedrooms: doc.beds as number || 0,
+    bathrooms: doc.baths as number || 1,
+    sqft: doc.sqft as number | undefined,
+    description: doc.description as string || '',
+    amenities: doc.amenities as string[] || [],
+    images: doc.images as string[] || [],
+    noFee: doc.noFee as boolean || false,
+    rentStabilized: false,
+    createdAt: doc.firstSeenAt as Date || new Date(),
+    updatedAt: doc.lastUpdatedAt as Date || new Date(),
+    // Include stored image analysis if available
+    storedImageAnalysis: storedAnalysis,
+  };
+}
+
+// Build query for ingested listings (different field names)
+function buildIngestedQuery(filters: SearchFilters) {
+  const query: Record<string, unknown> = {};
+
+  if (filters.minPrice || filters.maxPrice) {
+    query.price = {};
+    if (filters.minPrice) (query.price as Record<string, number>).$gte = filters.minPrice;
+    if (filters.maxPrice) (query.price as Record<string, number>).$lte = filters.maxPrice;
+  }
+
+  if (filters.bedrooms !== undefined) {
+    query.beds = { $gte: filters.bedrooms };
+  }
+
+  if (filters.bathrooms !== undefined) {
+    query.baths = { $gte: filters.bathrooms };
+  }
+
+  if (filters.neighborhoods && filters.neighborhoods.length > 0) {
+    query.neighborhood = { $in: filters.neighborhoods };
+  }
+
+  if (filters.noFeeOnly) {
+    query.noFee = true;
+  }
+
+  return query;
+}
+
+// Transform scraped Craigslist data to our Apartment interface (legacy)
 function transformScrapedListing(doc: Record<string, unknown>): Apartment {
   return {
     _id: (doc._id as { toString: () => string }).toString(),
