@@ -535,7 +535,11 @@ export default function ListingDetailPage() {
               {/* Quality Score */}
               {listing.storedImageAnalysis?.overallQuality && (
                 <div className="flex items-center gap-2 mb-2">
-                   <span className="text-2xl font-bold text-gray-900">
+                   <span className={`px-2 py-1 rounded-lg text-xl font-bold text-white ${
+                     listing.storedImageAnalysis.overallQuality >= 8 ? 'bg-green-600' :
+                     listing.storedImageAnalysis.overallQuality >= 7 ? 'bg-green-500' :
+                     listing.storedImageAnalysis.overallQuality >= 6 ? 'bg-amber-500' : 'bg-gray-500'
+                   }`}>
                      {listing.storedImageAnalysis.overallQuality.toFixed(1)}
                    </span>
                    <span className="text-sm font-medium text-gray-500">
