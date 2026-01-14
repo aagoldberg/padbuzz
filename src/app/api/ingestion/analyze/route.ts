@@ -10,20 +10,35 @@ import { analyzeApartmentImages } from '@/lib/image-analysis';
  * Query params:
  * - limit: max listings to analyze (default 10)
  * - sourceId: only analyze from specific source
+ * - reanalyze: set to 'true' to re-analyze listings missing new fields
+ * - force: set to 'true' to re-analyze ALL listings (refreshes summaries)
  */
 export async function POST(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const limit = parseInt(searchParams.get('limit') || '10', 10);
   const sourceId = searchParams.get('sourceId') || undefined;
+  const reanalyze = searchParams.get('reanalyze') === 'true';
+  const force = searchParams.get('force') === 'true';
 
   try {
     const collection = await getIngestedListingsCollection();
 
-    // Find listings without image analysis that have images
-    const query: Record<string, unknown> = {
-      'storedImageAnalysis': { $exists: false },
+    // Find listings to analyze
+    let query: Record<string, unknown> = {
       'images.0': { $exists: true }
     };
+
+    if (force) {
+      // Force: re-analyze all listings with images (useful for updating summary format)
+      query['storedImageAnalysis'] = { $exists: true };
+    } else if (reanalyze) {
+      // Re-analyze listings that are missing the new fields (coziness, charm, etc.)
+      query['storedImageAnalysis'] = { $exists: true };
+      query['storedImageAnalysis.coziness'] = { $exists: false };
+    } else {
+      // Normal: only analyze listings without any analysis
+      query['storedImageAnalysis'] = { $exists: false };
+    }
 
     if (sourceId) {
       query.sourceId = sourceId;
@@ -54,14 +69,19 @@ export async function POST(request: NextRequest) {
 
         const analysis = await analyzeApartmentImages(images.slice(0, 5)); // Limit to first 5 images
 
-        // Calculate overall quality score
+        // Calculate overall quality score (now includes all 6 metrics)
         const overallQuality = Math.round(
-          (analysis.overallCleanliness + analysis.overallLight + analysis.overallRenovation) / 3 * 10
+          (analysis.overallCleanliness +
+           analysis.overallLight +
+           analysis.overallRenovation +
+           analysis.overallSpacious +
+           analysis.overallCoziness +
+           analysis.overallCharm) / 6 * 10
         ) / 10;
 
-        // Store on document
+        // Store extended analysis on document
         await collection.updateOne(
-          { _id: new ObjectId(listing._id as string) },
+          { _id: listing._id },
           {
             $set: {
               storedImageAnalysis: {
@@ -69,6 +89,16 @@ export async function POST(request: NextRequest) {
                 cleanliness: analysis.overallCleanliness,
                 light: analysis.overallLight,
                 renovation: analysis.overallRenovation,
+                spaciousness: analysis.overallSpacious,
+                coziness: analysis.overallCoziness,
+                charm: analysis.overallCharm,
+                // Rich descriptive data
+                style: analysis.style,
+                vibe: analysis.vibe,
+                features: analysis.features,
+                buildingAmenities: analysis.buildingAmenities,
+                concerns: analysis.concerns,
+                summary: analysis.summary,
                 analyzedAt: new Date()
               }
             }
@@ -76,7 +106,7 @@ export async function POST(request: NextRequest) {
         );
 
         results.push({ id: listing._id.toString(), success: true, quality: overallQuality });
-        console.log(`  -> Quality: ${overallQuality}`);
+        console.log(`  -> Quality: ${overallQuality} | Vibe: ${analysis.vibe}`);
 
         // Delay to avoid rate limits (2 seconds between listings)
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -124,10 +154,16 @@ export async function GET(request: NextRequest) {
       baseQuery.sourceId = sourceId;
     }
 
-    const [total, analyzed, withImages] = await Promise.all([
+    const [total, analyzed, withImages, needsReanalysis] = await Promise.all([
       collection.countDocuments(baseQuery),
       collection.countDocuments({ ...baseQuery, 'storedImageAnalysis': { $exists: true } }),
-      collection.countDocuments({ ...baseQuery, 'images.0': { $exists: true } })
+      collection.countDocuments({ ...baseQuery, 'images.0': { $exists: true } }),
+      // Count listings analyzed with old schema (missing coziness field)
+      collection.countDocuments({
+        ...baseQuery,
+        'storedImageAnalysis': { $exists: true },
+        'storedImageAnalysis.coziness': { $exists: false }
+      })
     ]);
 
     const remaining = withImages - analyzed;
@@ -138,6 +174,7 @@ export async function GET(request: NextRequest) {
       withImages,
       analyzed,
       remaining,
+      needsReanalysis,
       percentComplete: withImages > 0 ? Math.round((analyzed / withImages) * 100) : 0,
       estimatedMinutesRemaining: estimatedMinutes
     });

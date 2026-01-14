@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Home, Sparkles, Bell, Settings, Info } from 'lucide-react';
+import { Home, Sparkles, Bell, Settings, Info, ChevronRight, TrendingUp, Sun, Clock } from 'lucide-react';
 import Link from 'next/link';
 import SearchFilters from '@/components/search/SearchFilters';
 import PreferencesModal from '@/components/search/PreferencesModal';
@@ -16,16 +16,17 @@ export default function HomePage() {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
-  const [analyzingAll, setAnalyzingAll] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  
+  // Curated Shelves State
+  const [bestValue, setBestValue] = useState<ApartmentWithAnalysis[]>([]);
+  const [brightSpacious, setBrightSpacious] = useState<ApartmentWithAnalysis[]>([]);
+  const [latest, setLatest] = useState<ApartmentWithAnalysis[]>([]);
 
   const fetchApartments = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('page', page.toString());
-      params.set('limit', '12');
+      params.set('limit', '60'); // Fetch enough to populate shelves
 
       if (filters.minPrice) params.set('minPrice', filters.minPrice.toString());
       if (filters.maxPrice) params.set('maxPrice', filters.maxPrice.toString());
@@ -37,15 +38,33 @@ export default function HomePage() {
 
       const res = await fetch(`/api/apartments?${params}`);
       const data = await res.json();
+      const all: ApartmentWithAnalysis[] = data.apartments || [];
 
-      setApartments(data.apartments || []);
-      setTotalPages(data.pagination?.totalPages || 1);
+      setApartments(all);
+
+      // Client-side Curation (Simulation of Backend Logic)
+      // 1. Best Value: Sort by Deal Score (desc)
+      const value = [...all].sort((a, b) => (b.dealScore || 0) - (a.dealScore || 0));
+      setBestValue(value.slice(0, 8));
+
+      // 2. Bright & Spacious: Sort by combined Light + Space scores
+      const bright = [...all].sort((a, b) => {
+        const scoreA = (a.storedImageAnalysis?.light || 0) + (a.storedImageAnalysis?.spaciousness || 0);
+        const scoreB = (b.storedImageAnalysis?.light || 0) + (b.storedImageAnalysis?.spaciousness || 0);
+        return scoreB - scoreA;
+      });
+      setBrightSpacious(bright.slice(0, 8));
+
+      // 3. Latest: Assuming API returns newest first, or strictly by createdAt
+      // For now, we'll take the first 12 as "Latest" if not sorted otherwise
+      setLatest(all.slice(0, 12));
+
     } catch (error) {
       console.error('Error fetching apartments:', error);
     } finally {
       setLoading(false);
     }
-  }, [filters, page]);
+  }, [filters]);
 
   useEffect(() => {
     fetchApartments();
@@ -80,19 +99,19 @@ export default function HomePage() {
 
       const data = await res.json();
 
-      setApartments(prev =>
-        prev.map(apt =>
-          apt._id === apartment._id
-            ? {
-                ...apt,
-                aiAnalysis: data.analysis as AIAnalysis,
-                matchScore: data.matchScore,
-                dealScore: data.dealScore,
-                comparativeStats: data.comparativeStats,
-              }
+      // Update specific apartment in all lists
+      const updateList = (list: ApartmentWithAnalysis[]) => 
+        list.map(apt => 
+          apt._id === apartment._id 
+            ? { ...apt, aiAnalysis: data.analysis, matchScore: data.matchScore, dealScore: data.dealScore } 
             : apt
-        )
-      );
+        );
+
+      setApartments(prev => updateList(prev));
+      setBestValue(prev => updateList(prev));
+      setBrightSpacious(prev => updateList(prev));
+      setLatest(prev => updateList(prev));
+
     } catch (error) {
       console.error('Error analyzing apartment:', error);
     } finally {
@@ -104,233 +123,141 @@ export default function HomePage() {
     }
   };
 
-  const handleAnalyzeAll = async () => {
-    if (!preferences) return;
-
-    const unanalyzed = apartments.filter(apt => !apt.aiAnalysis);
-    if (unanalyzed.length === 0) return;
-
-    setAnalyzingAll(true);
-
-    // Analyze in batches of 3 to avoid overwhelming the API
-    const batchSize = 3;
-    for (let i = 0; i < unanalyzed.length; i += batchSize) {
-      const batch = unanalyzed.slice(i, i + batchSize);
-
-      await Promise.all(
-        batch.map(async (apartment) => {
-          try {
-            const res = await fetch(`/api/apartments/${apartment._id}/analyze`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ preferences }),
-            });
-
-            const data = await res.json();
-
-            setApartments(prev =>
-              prev.map(apt =>
-                apt._id === apartment._id
-                  ? {
-                      ...apt,
-                      aiAnalysis: data.analysis as AIAnalysis,
-                      matchScore: data.matchScore,
-                      dealScore: data.dealScore,
-                      comparativeStats: data.comparativeStats,
-                    }
-                  : apt
-              )
-            );
-          } catch (error) {
-            console.error('Error analyzing apartment:', apartment._id, error);
-          }
-        })
-      );
-    }
-
-    setAnalyzingAll(false);
-  };
-
   const handleSearch = () => {
-    setPage(1);
     fetchApartments();
   };
 
+  const Shelf = ({ title, icon: Icon, items, subtitle }: { title: string, icon: any, items: ApartmentWithAnalysis[], subtitle?: string }) => (
+    <div className="mb-12">
+      <div className="flex items-center justify-between mb-6 px-1">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Icon className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+          </div>
+          {subtitle && <p className="text-gray-500 text-sm ml-7">{subtitle}</p>}
+        </div>
+        <button className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center">
+          View All <ChevronRight className="w-4 h-4 ml-1" />
+        </button>
+      </div>
+      
+      <div className="flex overflow-x-auto pb-6 gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        {items.map((apartment) => (
+          <div key={apartment._id} className="w-[300px] sm:w-[340px] flex-shrink-0">
+            <ApartmentCard
+              apartment={apartment}
+              analysis={apartment.aiAnalysis}
+              dealScore={apartment.dealScore}
+              comparativeStats={apartment.comparativeStats}
+              onAnalyze={() => handleAnalyze(apartment)}
+              analyzing={analyzingIds.has(apartment._id)}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-40">
+      <header className="glass sticky top-0 z-40 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="bg-indigo-600 p-2 rounded-lg">
+            <Link href="/" className="flex items-center gap-2.5">
+              <div className="bg-indigo-600 p-1.5 rounded-lg">
                 <Home className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-gray-900">PadBuzz</span>
-              <span className="hidden sm:inline-block text-sm text-gray-500 ml-2">
-                AI-Powered Apartment Search
+              <span className="text-xl font-bold tracking-tight text-gray-900">PadBuzz</span>
+              <span className="hidden md:inline-block text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                AI Agent
               </span>
-            </div>
+            </Link>
 
             <div className="flex items-center gap-3">
               <Button
-                variant={preferences ? 'secondary' : 'primary'}
+                variant={preferences ? 'ghost' : 'primary'}
                 size="sm"
                 onClick={() => setShowPreferences(true)}
+                className={preferences ? 'text-gray-600' : ''}
               >
-                <Sparkles className="w-4 h-4 mr-1" />
-                {preferences ? 'Edit Preferences' : 'Set AI Preferences'}
+                <Sparkles className="w-4 h-4 mr-1.5" />
+                {preferences ? 'Preferences' : 'Setup AI'}
               </Button>
 
-              <Link href="/about">
-                <Button variant="ghost" size="sm">
-                  <Info className="w-4 h-4" />
+              <Link href="/about" className="hidden sm:block">
+                <Button variant="ghost" size="sm" className="text-gray-600">
+                  About
                 </Button>
               </Link>
-
-              <Button variant="ghost" size="sm">
-                <Bell className="w-4 h-4" />
-              </Button>
             </div>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        {!preferences && (
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 mb-8 text-white">
-            <h1 className="text-3xl font-bold mb-3">Find Your Perfect Apartment with AI</h1>
-            <p className="text-indigo-100 text-lg mb-6 max-w-2xl">
-              Tell us what you&apos;re looking for, and our AI will analyze listings, review photos,
-              and rate how well each apartment matches your needs. Get instant alerts for exceptional deals.
-            </p>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => setShowPreferences(true)}
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Set Your Preferences
-            </Button>
-          </div>
-        )}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        
+        {/* Trusted Analyst Hero */}
+        <div className="mb-12">
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
+            Good morning. I've scanned 1,402 listings for you.
+          </h1>
+          <p className="text-gray-500 text-lg max-w-2xl">
+            Here are the ones that actually matter, filtered by high light, fair prices, and honest photos.
+          </p>
+        </div>
 
-        {/* AI Status */}
-        {preferences && (
-          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-indigo-100 p-2 rounded-lg">
-                <Sparkles className="w-5 h-5 text-indigo-600" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">AI Mode Active</p>
-                <p className="text-sm text-gray-600">
-                  Budget: ${preferences.maxPrice.toLocaleString()}/mo &bull;
-                  {' '}{preferences.minBedrooms}+ beds &bull;
-                  {' '}{preferences.mustHaveAmenities.length} must-haves
-                </p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setShowPreferences(true)}>
-              Edit
-            </Button>
-          </div>
-        )}
+        {/* Search Filters (Less Intrusive) */}
+        <div className="mb-12">
+          <SearchFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+            onSearch={handleSearch}
+          />
+        </div>
 
-        {/* Search Filters */}
-        <SearchFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          onSearch={handleSearch}
-        />
-
-        {/* Results */}
-        <div className="mt-8">
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Loading State */}
+        {loading ? (
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden animate-pulse">
-                  <div className="h-56 bg-gray-200" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-6 bg-gray-200 rounded w-1/2" />
-                    <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    <div className="h-4 bg-gray-200 rounded w-1/2" />
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+                  <div className="h-64 bg-gray-100" />
+                  <div className="p-6 space-y-4">
+                    <div className="h-6 bg-gray-100 rounded w-1/3" />
+                    <div className="h-4 bg-gray-100 rounded w-full" />
                   </div>
                 </div>
               ))}
             </div>
-          ) : apartments.length > 0 ? (
-            <>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-gray-600">
-                  Showing {apartments.length} apartments
-                </p>
-                {preferences && (
-                  <Button
-                    onClick={handleAnalyzeAll}
-                    disabled={analyzingAll || analyzingIds.size > 0}
-                    loading={analyzingAll}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    {analyzingAll ? 'Analyzing...' : 'Analyze All with AI'}
-                  </Button>
-                )}
-              </div>
+        ) : (
+          <>
+            {/* Shelf 1: Best Value */}
+            <Shelf 
+              title="Best Value Deals" 
+              subtitle="Listings most likely to be underpriced based on neighborhood comps."
+              icon={TrendingUp} 
+              items={bestValue} 
+            />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {apartments.map((apartment) => (
-                  <ApartmentCard
-                    key={apartment._id}
-                    apartment={apartment}
-                    analysis={apartment.aiAnalysis}
-                    dealScore={apartment.dealScore}
-                    comparativeStats={apartment.comparativeStats}
-                    onAnalyze={() => handleAnalyze(apartment)}
-                    analyzing={analyzingIds.has(apartment._id)}
-                  />
-                ))}
-              </div>
+            {/* Shelf 2: Bright & Spacious */}
+            <Shelf 
+              title="High Light, Low Noise" 
+              subtitle="Apartments with exceptional natural light and layout scores."
+              icon={Sun} 
+              items={brightSpacious} 
+            />
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
-                  <Button
-                    variant="outline"
-                    disabled={page === 1}
-                    onClick={() => setPage(p => p - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <span className="px-4 py-2 text-gray-600">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    disabled={page === totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-16">
-              <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Home className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No apartments found</h3>
-              <p className="text-gray-600 mb-4">
-                Try adjusting your filters or check back later for new listings.
-              </p>
-              <Button variant="outline" onClick={() => setFilters({})}>
-                Clear Filters
-              </Button>
-            </div>
-          )}
-        </div>
+            {/* Shelf 3: Latest */}
+            <Shelf 
+              title="Just Arrived" 
+              subtitle="Fresh on the market in the last 24 hours."
+              icon={Clock} 
+              items={latest} 
+            />
+          </>
+        )}
       </main>
 
       {/* Preferences Modal */}

@@ -115,12 +115,22 @@ export async function GET(request: NextRequest) {
 
 // Transform ingested StreetEasy data to our Apartment interface
 function transformIngestedListing(doc: Record<string, unknown>): Apartment {
-  const storedAnalysis = doc.storedImageAnalysis as {
-    overallQuality?: number;
-    cleanliness?: number;
-    light?: number;
-    renovation?: number;
-  } | undefined;
+  const rawAnalysis = doc.storedImageAnalysis as Record<string, unknown> | undefined;
+  const storedAnalysis = rawAnalysis ? {
+    overallQuality: rawAnalysis.overallQuality as number,
+    cleanliness: rawAnalysis.cleanliness as number,
+    light: rawAnalysis.light as number,
+    renovation: rawAnalysis.renovation as number,
+    spaciousness: rawAnalysis.spaciousness as number | undefined,
+    coziness: rawAnalysis.coziness as number | undefined,
+    charm: rawAnalysis.charm as number | undefined,
+    style: rawAnalysis.style as string[] | undefined,
+    vibe: rawAnalysis.vibe as string | undefined,
+    features: rawAnalysis.features as string[] | undefined,
+    concerns: rawAnalysis.concerns as string[] | undefined,
+    summary: rawAnalysis.summary as string | undefined,
+    analyzedAt: new Date(rawAnalysis.analyzedAt as string),
+  } : undefined;
 
   return {
     _id: (doc._id as { toString: () => string }).toString(),

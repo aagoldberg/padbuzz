@@ -56,12 +56,18 @@ interface ApifyStreetEasyNode {
   interestingPriceDelta?: number;
 }
 
+interface ApifyStreetEasyAmenity {
+  __typename: string;
+  name: string;
+  category?: string;
+}
+
 interface ApifyStreetEasyListing {
   __typename: string;
   node: ApifyStreetEasyNode;
-  amenitiesMatch?: unknown;
-  matchedAmenities?: unknown;
-  missingAmenities?: unknown;
+  amenitiesMatch?: number;
+  matchedAmenities?: ApifyStreetEasyAmenity[];
+  missingAmenities?: ApifyStreetEasyAmenity[];
 }
 
 interface ApifyRunResponse {
@@ -317,8 +323,7 @@ export class ApifyStreetEasyAdapter implements SourceAdapter {
     if (params?.borough) {
       const boroughLower = params.borough.toLowerCase();
       return listings.filter(l =>
-        l.borough?.toLowerCase() === boroughLower ||
-        l.neighborhood?.toLowerCase().includes(boroughLower)
+        l.node?.areaName?.toLowerCase().includes(boroughLower)
       );
     }
 
@@ -379,7 +384,7 @@ export class ApifyStreetEasyAdapter implements SourceAdapter {
       longitude: node.geoPoint?.longitude,
 
       images,
-      amenities: [],
+      amenities: (apify.matchedAmenities || []).map(a => a.name),
 
       brokerCompany: node.sourceGroupLabel,
 
@@ -399,6 +404,10 @@ export class ApifyStreetEasyAdapter implements SourceAdapter {
       upcomingOpenHouse: node.upcomingOpenHouse?.startTime
         ? new Date(node.upcomingOpenHouse.startTime)
         : undefined,
+      unit: node.unit,
+      tier: node.tier,
+      priceDelta: node.interestingPriceDelta,
+      offMarketAt: node.offMarketAt ? new Date(node.offMarketAt) : undefined,
 
       status: node.status === 'ACTIVE' ? 'active' : 'unknown',
       firstSeenAt: new Date(),

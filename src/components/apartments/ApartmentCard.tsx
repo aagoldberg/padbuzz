@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MapPin, Bed, Bath, Square, Check, Sparkles, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sun, Maximize, DollarSign, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Apartment, AIAnalysis, ComparativeStats } from '@/types/apartment';
 import Button from '@/components/ui/Button';
 
@@ -26,187 +26,162 @@ export default function ApartmentCard({
 }: ApartmentCardProps) {
   const [imageIndex, setImageIndex] = useState(0);
 
-  const getDealBadge = () => {
-    if (!dealScore) return null;
-    if (dealScore >= 90) return { text: 'Exceptional Deal', color: 'bg-red-500' };
-    if (dealScore >= 80) return { text: 'Great Deal', color: 'bg-orange-500' };
-    if (dealScore >= 70) return { text: 'Good Deal', color: 'bg-yellow-500' };
+  const getVerdict = () => {
+    // Priority: Analysis Score -> Deal Score -> "Not Analyzed"
+    if (analysis?.overallScore) {
+      const score = analysis.overallScore;
+      if (score >= 8) return { text: `${score.toFixed(1)} EXCEPTIONAL`, color: 'bg-green-700 text-white' };
+      if (score >= 7) return { text: `${score.toFixed(1)} GOOD`, color: 'bg-green-600 text-white' };
+      if (score >= 5) return { text: `${score.toFixed(1)} AVERAGE`, color: 'bg-amber-500 text-white' };
+      return { text: `${score.toFixed(1)} PASS`, color: 'bg-red-500 text-white' };
+    }
+    if (dealScore) {
+      if (dealScore >= 90) return { text: 'GREAT VALUE', color: 'bg-green-700 text-white' };
+      if (dealScore >= 80) return { text: 'GOOD VALUE', color: 'bg-green-600 text-white' };
+      return { text: 'FAIR VALUE', color: 'bg-amber-500 text-white' };
+    }
     return null;
   };
 
-  const dealBadge = getDealBadge();
+  const verdict = getVerdict();
+  const lightScore = apartment.storedImageAnalysis?.light;
+  const spaceScore = apartment.storedImageAnalysis?.spaciousness;
 
   return (
-    <Link href={`/listing/${apartment._id}`} className="block">
-      <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
-        <div className="relative h-56 group">
-        {apartment.images && apartment.images.length > 0 ? (
-          <>
-            <Image
-              src={apartment.images[imageIndex]}
-              alt={apartment.address}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-            {apartment.images.length > 1 && (
-              <>
-                {/* Left arrow */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setImageIndex(prev => prev === 0 ? apartment.images.length - 1 : prev - 1);
-                  }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                {/* Right arrow */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setImageIndex(prev => prev === apartment.images.length - 1 ? 0 : prev + 1);
-                  }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-                {/* Image counter */}
-                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-                  {imageIndex + 1} / {apartment.images.length}
+    <Link href={`/listing/${apartment._id}`} className="group block h-full">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+        {/* Hero Image Section */}
+        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+          {apartment.images && apartment.images.length > 0 ? (
+            <>
+              <Image
+                src={apartment.images[imageIndex]}
+                alt={apartment.address}
+                fill
+                className="object-cover transition-transform duration-700 group-hover:scale-105"
+                unoptimized
+              />
+
+              {/* Verdict Badge - The "Analyst" Stamp */}
+              {verdict && (
+                <div className={`absolute top-4 left-4 px-3 py-1.5 rounded-md shadow-sm font-bold text-xs tracking-wider uppercase ${verdict.color}`}>
+                  {verdict.text}
                 </div>
-                {/* Dots */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                  {apartment.images.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setImageIndex(idx);
-                      }}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        idx === imageIndex ? 'bg-white' : 'bg-white/50 hover:bg-white/75'
-                      }`}
-                    />
-                  ))}
+              )}
+
+              {/* No Fee Badge */}
+              {apartment.noFee && (
+                <div className="absolute top-4 right-4 bg-black/70 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-xs font-bold uppercase tracking-wide border border-white/10">
+                  No Fee
                 </div>
-              </>
-            )}
-          </>
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-400">No image available</span>
-          </div>
-        )}
+              )}
 
-        {dealBadge && (
-          <div className={`absolute top-3 left-3 ${dealBadge.color} text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1`}>
-            <Sparkles className="w-4 h-4" />
-            {dealBadge.text}
-          </div>
-        )}
-
-        {apartment.noFee && (
-          <div className="absolute top-3 right-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-            No Fee
-          </div>
-        )}
-      </div>
-
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-bold text-gray-900">
-            ${apartment.price.toLocaleString()}/mo
-          </h3>
-          {analysis && (
-            <div className="flex items-center gap-1 bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg">
-              <TrendingUp className="w-4 h-4" />
-              <span className="font-semibold">{analysis.overallScore}/10</span>
+              {/* Navigation */}
+              {apartment.images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setImageIndex(prev => prev === 0 ? apartment.images.length - 1 : prev - 1);
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 text-gray-900 p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setImageIndex(prev => prev === apartment.images.length - 1 ? 0 : prev + 1);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 text-gray-900 p-1.5 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              No Image
             </div>
           )}
         </div>
 
-        <div className="flex items-center text-gray-600 mb-3">
-          <MapPin className="w-4 h-4 mr-1" />
-          <span className="text-sm truncate">{apartment.address}</span>
-        </div>
-
-        <div className="flex gap-4 text-gray-600 mb-4">
-          <div className="flex items-center gap-1">
-            <Bed className="w-4 h-4" />
-            <span>{apartment.bedrooms} bed</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <Bath className="w-4 h-4" />
-            <span>{apartment.bathrooms} bath</span>
-          </div>
-          {apartment.sqft && (
-            <div className="flex items-center gap-1">
-              <Square className="w-4 h-4" />
-              <span>{apartment.sqft} sqft</span>
+        {/* Content Section */}
+        <div className="p-5 flex flex-col flex-1">
+          {/* Header: Price & Address */}
+          <div className="mb-4">
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">
+              ${apartment.price.toLocaleString()}
+            </h3>
+            <div className="flex items-center text-gray-600 mt-1">
+              <span className="font-medium truncate">{apartment.address}</span>
             </div>
-          )}
-        </div>
+            <div className="text-sm text-gray-500 mt-0.5">
+              {apartment.bedrooms}bd • {apartment.bathrooms}ba • {apartment.neighborhood}
+            </div>
+          </div>
 
-        <div className="text-sm text-gray-500 mb-4">
-          {apartment.neighborhood}
-          {apartment.rentStabilized && (
-            <span className="ml-2 text-indigo-600 font-medium">• Rent Stabilized</span>
-          )}
-        </div>
-
-        {analysis ? (
-          <div className="border-t pt-4 mt-4">
-            <p className="text-sm text-gray-700 mb-3">{analysis.summary}</p>
-
-            {comparativeStats && comparativeStats.imageQualityPercentile > 0 && (
-              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg px-3 py-2 mb-3">
-                <p className="text-sm font-medium text-indigo-700">
-                  Looks better than {comparativeStats.imageQualityPercentile}% of listings in {comparativeStats.priceRange}
-                </p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Based on {comparativeStats.sampleSize} analyzed apartments
-                </p>
+          {/* Signals Row - Always show structure, scores optional */}
+          <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-gray-100 mb-4">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-center gap-1 text-gray-400 mb-0.5">
+                <Sun className="w-3.5 h-3.5" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Light</span>
               </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {analysis.pros.slice(0, 2).map((pro, idx) => (
-                <span key={idx} className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                  <Check className="w-3 h-3" />
-                  {pro}
-                </span>
-              ))}
+              <span className={`text-sm font-bold ${lightScore && lightScore >= 7 ? 'text-gray-900' : 'text-gray-500'}`}>
+                {lightScore ? lightScore.toFixed(1) : '—'}
+              </span>
             </div>
+
+            <div className="flex flex-col items-center justify-center text-center border-l border-gray-100">
+              <div className="flex items-center gap-1 text-gray-400 mb-0.5">
+                <Maximize className="w-3.5 h-3.5" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Space</span>
+              </div>
+              <span className={`text-sm font-bold ${spaceScore && spaceScore >= 7 ? 'text-gray-900' : 'text-gray-500'}`}>
+                {spaceScore ? spaceScore.toFixed(1) : '—'}
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center text-center border-l border-gray-100">
+                              <div className="flex items-center gap-1 text-gray-400 mb-0.5">
+                                <DollarSign className="w-3.5 h-3.5" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider">Value</span>
+                              </div>
+                              <span className={`text-sm font-bold ${dealScore && dealScore >= 80 ? 'text-green-700' : 'text-gray-900'}`}>
+                                {dealScore || '-'} 
+                              </span>
+                            </div>          </div>
+
+          {/* The Take - Always show insight */}
+          <div className="mt-auto">
+            {analysis?.summary || apartment.storedImageAnalysis?.summary ? (
+              <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed font-medium">
+                <span className="text-indigo-600 font-bold mr-1">The Take:</span>
+                {analysis?.summary || apartment.storedImageAnalysis?.summary}
+              </p>
+            ) : apartment.storedImageAnalysis?.vibe ? (
+              <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed font-medium">
+                <span className="text-indigo-600 font-bold mr-1">Vibe:</span>
+                {apartment.storedImageAnalysis.vibe}
+              </p>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  onAnalyze?.();
+                }}
+                className="text-xs text-indigo-600 font-semibold hover:text-indigo-700 flex items-center"
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                See why this made the cut
+              </button>
+            )}
           </div>
-        ) : (
-          <div className="flex gap-2">
-            <Button
-              variant="primary"
-              size="sm"
-              className="flex-1"
-              onClick={(e) => {
-                e.preventDefault();
-                onAnalyze?.();
-              }}
-              loading={analyzing}
-            >
-              <Sparkles className="w-4 h-4 mr-1" />
-              AI Analysis
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault();
-                window.open(apartment.url, '_blank');
-              }}
-            >
-              View Listing
-            </Button>
-          </div>
-        )}
-      </div>
+        </div>
       </div>
     </Link>
   );

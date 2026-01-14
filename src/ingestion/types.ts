@@ -133,6 +133,10 @@ export interface NormalizedListing {
   mediaAssetCount?: number;
   buildingType?: string;
   upcomingOpenHouse?: Date;
+  unit?: string;
+  tier?: string; // Listing tier (e.g., "FEATURED", "STANDARD")
+  priceDelta?: number; // Recent price change
+  offMarketAt?: Date; // When listing went off market
 
   // Tracking
   status: ListingStatus;

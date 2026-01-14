@@ -107,10 +107,20 @@ export interface DealAlert {
 
 // Stored image analysis on apartment document
 export interface StoredImageAnalysis {
-  overallQuality: number; // avg of cleanliness + light + renovation
+  overallQuality: number; // avg of all scores
   cleanliness: number;
   light: number;
   renovation: number;
+  spaciousness?: number;
+  coziness?: number;
+  charm?: number;
+  // Rich descriptive data
+  style?: string[];
+  vibe?: string;
+  features?: string[];
+  buildingAmenities?: string[];
+  concerns?: string[];
+  summary?: string;
   analyzedAt: Date;
 }
 
