@@ -47,6 +47,20 @@ export default function ApartmentCard({
   const lightScore = apartment.storedImageAnalysis?.light;
   const spaceScore = apartment.storedImageAnalysis?.spaciousness;
 
+  // Clean summary text by removing room lists and other mechanical patterns
+  const cleanSummary = (summary: string): string => {
+    if (!summary) return summary;
+    return summary
+      .trim()
+      // Remove "Photos show: room, room, room." pattern
+      .replace(/^Photos show:\s*[^.]+\.\s*/i, '')
+      // Remove "Notable features: ..." pattern
+      .replace(/Notable features:\s*[^.]+\.\s*/gi, '')
+      // Remove standalone room lists at start
+      .replace(/^\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room)([,\/]\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other|gym|pool|rooftop|lobby|laundry|floorplan|room))*\.?\s*/gi, '')
+      .trim();
+  };
+
   return (
     <Link href={`/listing/${apartment._id}`} className="group block h-full">
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 h-full flex flex-col">
@@ -161,7 +175,7 @@ export default function ApartmentCard({
             {analysis?.summary || apartment.storedImageAnalysis?.summary ? (
               <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed font-medium">
                 <span className="text-indigo-600 font-bold mr-1">The Take:</span>
-                {analysis?.summary || apartment.storedImageAnalysis?.summary}
+                {cleanSummary(analysis?.summary || apartment.storedImageAnalysis?.summary || '')}
               </p>
             ) : apartment.storedImageAnalysis?.vibe ? (
               <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed font-medium">
