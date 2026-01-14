@@ -106,31 +106,18 @@ export default function SearchFilters({ filters, onFiltersChange, onSearch }: Se
     <>
       {/* Quick Filters Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-        {/* Price Dropdown - Desktop */}
-        <div className="hidden sm:block relative group">
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 transition-colors min-w-[120px]">
-            {getPriceLabel()}
-            <ChevronDown className="w-4 h-4 text-gray-400" />
-          </button>
-          <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg py-2 min-w-[180px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-            {PRICE_RANGES.map((range) => (
-              <button
-                key={range.label}
-                onClick={() => {
-                  updateFilter('minPrice', range.min);
-                  updateFilter('maxPrice', range.max);
-                }}
-                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 ${
-                  filters.minPrice === range.min && filters.maxPrice === range.max
-                    ? 'text-indigo-600 font-medium'
-                    : 'text-gray-700'
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Price Button - Opens Filter Drawer */}
+        <button
+          onClick={() => setShowFilters(true)}
+          className={`hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
+            filters.minPrice || filters.maxPrice
+              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+              : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'
+          }`}
+        >
+          {getPriceLabel()}
+          <ChevronDown className="w-4 h-4 text-gray-400" />
+        </button>
 
         {/* Beds - Quick Select */}
         <div className="flex items-center bg-white border border-gray-200 rounded-xl overflow-hidden">
