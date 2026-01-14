@@ -201,11 +201,11 @@ export default function HomePage() {
         
         {/* Trusted Analyst Hero */}
         <div className="mb-12">
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
-            Good morning. I've scanned 1,402 listings for you.
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
+            Your Daily Market Briefing.
           </h1>
-          <p className="text-gray-500 text-lg max-w-2xl">
-            Here are the ones that actually matter, filtered by high light, fair prices, and honest photos.
+          <p className="text-gray-500 text-lg max-w-2xl leading-relaxed">
+            High-signal listings, rigorously vetted for <span className="font-semibold text-gray-700">light</span>, <span className="font-semibold text-gray-700">layout</span>, and <span className="font-semibold text-gray-700">fair pricing</span>.
           </p>
         </div>
 
