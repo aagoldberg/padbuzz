@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Share, Heart, MapPin, Calendar, Building2, User, Camera, ClipboardList, Check, AlertTriangle, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Share, Heart, MapPin, Calendar, Building2, User, Camera, ClipboardList, Check, AlertTriangle, ExternalLink, Sparkles } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface Listing {
@@ -82,6 +82,21 @@ function getDaysOnMarket(firstSeenAt: string): number {
   const firstSeen = new Date(firstSeenAt);
   const now = new Date();
   return Math.floor((now.getTime() - firstSeen.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+// Filter concerns that contradict the actual scores
+function filterConcerns(
+  concerns: string[],
+  analysis: { light?: number; spaciousness?: number; cleanliness?: number; renovation?: number }
+): string[] {
+  return concerns.filter(concern => {
+    const lower = concern.toLowerCase();
+    if ((lower.includes('dark') || lower.includes('no natural light')) && (analysis.light || 0) >= 7) return false;
+    if ((lower.includes('small') || lower.includes('cramped')) && (analysis.spaciousness || 0) >= 7) return false;
+    if ((lower.includes('dirty') || lower.includes('wear')) && (analysis.cleanliness || 0) >= 7) return false;
+    if ((lower.includes('dated') || lower.includes('old')) && (analysis.renovation || 0) >= 7) return false;
+    return true;
+  });
 }
 
 function Description({ text }: { text: string }) {
@@ -386,50 +401,50 @@ export default function ListingDetailPage() {
                    <h2 className="text-xl font-bold text-gray-900">Analyst Report</h2>
                 </div>
 
-                <div className="space-y-6">
-                   {/* Vibe & Summary */}
-                    <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+                <div className="space-y-8">
+                   {/* Vibe & Summary - Editorial Style */}
+                    <div>
                        {listing.storedImageAnalysis.vibe && (
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs font-bold uppercase tracking-wide">
-                              Vibe Check
-                            </span>
-                            <span className="font-bold text-gray-900">{listing.storedImageAnalysis.vibe}</span>
+                          <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span className="text-xs font-bold uppercase tracking-wide">Vibe: {listing.storedImageAnalysis.vibe}</span>
                           </div>
                         )}
-                        <p className="text-gray-700 leading-relaxed font-medium text-lg">
-                          {listing.storedImageAnalysis.summary}
+                        <p className="text-gray-800 leading-relaxed font-medium text-lg md:text-xl">
+                          &ldquo;{listing.storedImageAnalysis.summary}&rdquo;
                         </p>
                     </div>
 
-                    {/* Metrics */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {[
-                        { label: 'Light', val: listing.storedImageAnalysis.light },
-                        { label: 'Space', val: listing.storedImageAnalysis.spaciousness },
-                        { label: 'Cleanliness', val: listing.storedImageAnalysis.cleanliness },
-                        { label: 'Modernity', val: listing.storedImageAnalysis.renovation },
-                      ].map((metric) => (
-                        <div key={metric.label} className="p-4 rounded-xl border border-gray-100 text-center hover:border-gray-300 transition-colors">
-                          <div className="text-2xl font-bold text-gray-900 mb-1">{metric.val?.toFixed(1) || '-'}</div>
-                          <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{metric.label}</div>
-                        </div>
-                      ))}
+                    {/* Metrics Dashboard */}
+                    <div className="py-6 border-t border-b border-gray-100">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                        {[
+                          { label: 'Light', val: listing.storedImageAnalysis.light },
+                          { label: 'Space', val: listing.storedImageAnalysis.spaciousness },
+                          { label: 'Cleanliness', val: listing.storedImageAnalysis.cleanliness },
+                          { label: 'Modernity', val: listing.storedImageAnalysis.renovation },
+                        ].map((metric) => (
+                          <div key={metric.label} className="text-center">
+                            <div className="text-3xl font-extrabold text-gray-900 mb-1 tracking-tight">{metric.val?.toFixed(1) || '-'}</div>
+                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{metric.label}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     {/* Highlights */}
                      {(listing.storedImageAnalysis.features?.length || listing.storedImageAnalysis.concerns?.length) ? (
-                      <div className="grid md:grid-cols-2 gap-6 pt-4">
+                      <div className="grid md:grid-cols-2 gap-8">
                         {listing.storedImageAnalysis.features && listing.storedImageAnalysis.features.length > 0 && (
                           <div>
-                            <h4 className="text-xs font-bold text-green-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                              <Check className="w-4 h-4" /> The Good
+                            <h4 className="text-xs font-bold text-green-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                              <Check className="w-4 h-4" /> Standouts
                             </h4>
-                            <ul className="space-y-2">
+                            <ul className="space-y-3">
                               {listing.storedImageAnalysis.features.map((feature, i) => (
-                                <li key={i} className="text-sm font-medium text-gray-700 flex items-start gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5 flex-shrink-0" />
-                                  {feature}
+                                <li key={i} className="text-sm font-medium text-gray-700 flex items-start gap-2.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 flex-shrink-0" />
+                                  <span className="leading-relaxed">{feature}</span>
                                 </li>
                               ))}
                             </ul>
@@ -438,14 +453,14 @@ export default function ListingDetailPage() {
 
                         {listing.storedImageAnalysis.concerns && listing.storedImageAnalysis.concerns.length > 0 && (
                           <div>
-                            <h4 className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                              <AlertTriangle className="w-4 h-4" /> The Bad
+                            <h4 className="text-xs font-bold text-red-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                              <AlertTriangle className="w-4 h-4" /> Trade-offs
                             </h4>
-                            <ul className="space-y-2">
+                            <ul className="space-y-3">
                               {listing.storedImageAnalysis.concerns.map((concern, i) => (
-                                <li key={i} className="text-sm font-medium text-gray-700 flex items-start gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-1.5 flex-shrink-0" />
-                                  {concern}
+                                <li key={i} className="text-sm font-medium text-gray-700 flex items-start gap-2.5">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 flex-shrink-0" />
+                                  <span className="leading-relaxed">{concern}</span>
                                 </li>
                               ))}
                             </ul>

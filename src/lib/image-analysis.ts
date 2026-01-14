@@ -239,7 +239,9 @@ export async function analyzeApartmentImages(
   // Deduplicate and count occurrences
   const style = [...new Set(allStyles)].slice(0, 5);
   const features = [...new Set(allFeatures)].slice(0, 10);
-  const concerns = [...new Set(allConcerns)].slice(0, 5);
+  const rawConcerns = [...new Set(allConcerns)].slice(0, 10);
+  // Filter out concerns that contradict the actual scores
+  const concerns = filterContradictoryConcerns(rawConcerns, overallLight, overallSpacious, overallCleanliness, overallRenovation).slice(0, 5);
   const buildingAmenities = [...new Set(allBuildingAmenities)].slice(0, 15);
 
   // Generate vibe description
@@ -317,55 +319,60 @@ function generateSummary(
   features: string[],
   concerns: string[]
 ): string {
-  const parts: string[] = [];
   const avgScore = (cleanliness + light + renovation + spacious + coziness + charm) / 6;
 
   // Lead with the AI's actual observation (the interesting part)
+  // Don't include Standouts/Notable/Watch for - those are in dedicated sections
   const interestingNotes = images
     .map(i => i.notes)
-    .filter(n => n && n.length > 20 && n !== 'Analysis unavailable')
-    .slice(0, 1);
+    .filter(n => n && n.length > 30 && n !== 'Analysis unavailable')
+    .slice(0, 2);
 
   if (interestingNotes.length > 0) {
-    parts.push(interestingNotes[0]);
+    // Combine up to 2 interesting observations
+    return interestingNotes.join(' ');
+  }
+
+  // Fallback: Generate a quality-based summary
+  if (avgScore >= 8.5) {
+    return 'An exceptional apartment that checks all the boxes. The photos reveal a well-maintained space with thoughtful finishes and genuine appeal.';
+  } else if (avgScore >= 7.5) {
+    return 'A strong contender with solid presentation throughout. This one photographs well and shows real promise for the right renter.';
+  } else if (avgScore >= 6.5) {
+    return 'A respectable option in good overall condition. Nothing flashy, but the fundamentals are there.';
+  } else if (avgScore >= 5.5) {
+    return 'A serviceable apartment that gets the job done. Expectations should be calibrated accordingly.';
   } else {
-    // Fallback: Generate a quality-based opener
-    if (avgScore >= 8) {
-      parts.push('A standout apartment with excellent presentation and strong appeal.');
-    } else if (avgScore >= 7) {
-      parts.push('A solid option with good condition and nice details throughout.');
-    } else if (avgScore >= 6) {
-      parts.push('A decent apartment in fair condition.');
-    } else if (avgScore >= 5) {
-      parts.push('An average apartment that gets the job done.');
-    } else {
-      parts.push('This one has some rough edges worth considering.');
+    return 'This one requires some imagination. The photos suggest room for improvement, but could work for the right person.';
+  }
+}
+
+// Filter concerns that contradict the actual scores
+function filterContradictoryConcerns(
+  concerns: string[],
+  light: number,
+  spacious: number,
+  cleanliness: number,
+  renovation: number
+): string[] {
+  return concerns.filter(concern => {
+    const lower = concern.toLowerCase();
+    // Don't show "dark" or "no natural light" if light score is good
+    if ((lower.includes('dark') || lower.includes('no natural light') || lower.includes('poor lighting')) && light >= 7) {
+      return false;
     }
-  }
-
-  // Standouts (what makes it special)
-  const highlights: string[] = [];
-  if (light >= 8) highlights.push('exceptional natural light');
-  if (spacious >= 8) highlights.push('generous space');
-  if (coziness >= 8) highlights.push('cozy feel');
-  if (charm >= 8) highlights.push('real character');
-  if (renovation >= 8) highlights.push('modern finishes');
-  if (cleanliness >= 9) highlights.push('pristine condition');
-
-  if (highlights.length > 0) {
-    parts.push(`Standouts: ${highlights.join(', ')}.`);
-  }
-
-  // Key features (specific details)
-  if (features.length > 0) {
-    const topFeatures = features.slice(0, 3);
-    parts.push(`Notable: ${topFeatures.join(', ')}.`);
-  }
-
-  // Concerns (be direct)
-  if (concerns.length > 0) {
-    parts.push(`Watch for: ${concerns.slice(0, 2).join(', ')}.`);
-  }
-
-  return parts.join(' ') || 'Standard apartment listing.';
+    // Don't show "small space" if spaciousness is good
+    if ((lower.includes('small') || lower.includes('cramped') || lower.includes('tight')) && spacious >= 7) {
+      return false;
+    }
+    // Don't show cleanliness concerns if cleanliness is good
+    if ((lower.includes('dirty') || lower.includes('worn') || lower.includes('wear visible')) && cleanliness >= 7) {
+      return false;
+    }
+    // Don't show dated concerns if renovation is good
+    if ((lower.includes('dated') || lower.includes('old') || lower.includes('outdated')) && renovation >= 7) {
+      return false;
+    }
+    return true;
+  });
 }
