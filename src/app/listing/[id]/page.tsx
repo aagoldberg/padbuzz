@@ -502,52 +502,38 @@ export default function ListingDetailPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Title Section with Verdict */}
-        <div className="mb-6">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-            <div className="flex-grow">
-               <div className="flex flex-wrap items-center gap-2 mb-3">
-                {/* Badges */}
-                {listing.noFee && (
-                  <span className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-bold uppercase tracking-wide border border-gray-200">
-                    No Fee
-                  </span>
-                )}
-                {listing.upcomingOpenHouse && (
-                  <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-md text-xs font-bold uppercase tracking-wide border border-blue-100">
-                    Open House
-                  </span>
-                )}
-               </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Title Section */}
+        <div className="mb-4">
+          {/* Badges */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {listing.noFee && (
+              <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-bold uppercase">
+                No Fee
+              </span>
+            )}
+            {listing.upcomingOpenHouse && (
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-bold uppercase">
+                Open House
+              </span>
+            )}
+            {listing.storedImageAnalysis?.overallQuality && (
+              <span className={`px-2 py-0.5 rounded text-xs font-bold text-white ${
+                listing.storedImageAnalysis.overallQuality >= 8 ? 'bg-green-600' :
+                listing.storedImageAnalysis.overallQuality >= 7 ? 'bg-green-500' :
+                listing.storedImageAnalysis.overallQuality >= 6 ? 'bg-amber-500' : 'bg-gray-500'
+              }`}>
+                {listing.storedImageAnalysis.overallQuality.toFixed(1)} {getQualityLabel(listing.storedImageAnalysis.overallQuality).label}
+              </span>
+            )}
+          </div>
 
-              <h1 className="text-3xl md:text-5xl font-extrabold text-gray-900 tracking-tight mb-2">
-                {extractBuildingName(listing.sourceUrl) || listing.addressText}
-              </h1>
-              <div className="flex items-center text-gray-500 text-lg font-medium">
-                <MapPin className="w-5 h-5 mr-1.5 text-gray-400" />
-                {listing.neighborhood}{listing.borough ? `, ${listing.borough}` : ''}
-              </div>
-            </div>
-
-            {/* Price & Score Block */}
-            <div className="flex flex-row md:flex-col items-center md:items-end gap-4 md:gap-1">
-              {/* Quality Score */}
-              {listing.storedImageAnalysis?.overallQuality && (
-                <div className="flex items-center gap-2 mb-2">
-                   <span className={`px-2 py-1 rounded-lg text-xl font-bold text-white ${
-                     listing.storedImageAnalysis.overallQuality >= 8 ? 'bg-green-600' :
-                     listing.storedImageAnalysis.overallQuality >= 7 ? 'bg-green-500' :
-                     listing.storedImageAnalysis.overallQuality >= 6 ? 'bg-amber-500' : 'bg-gray-500'
-                   }`}>
-                     {listing.storedImageAnalysis.overallQuality.toFixed(1)}
-                   </span>
-                   <span className="text-sm font-medium text-gray-500">
-                     {getQualityLabel(listing.storedImageAnalysis.overallQuality).label}
-                   </span>
-                </div>
-              )}
-            </div>
+          <h1 className="text-2xl md:text-4xl font-bold text-gray-900 tracking-tight">
+            {extractBuildingName(listing.sourceUrl) || listing.addressText}
+          </h1>
+          <div className="flex items-center text-gray-500 text-sm mt-1">
+            <MapPin className="w-4 h-4 mr-1 text-gray-400" />
+            {listing.neighborhood}{listing.borough ? `, ${listing.borough}` : ''}
           </div>
         </div>
 
