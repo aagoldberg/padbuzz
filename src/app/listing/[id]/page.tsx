@@ -129,6 +129,8 @@ const NEIGHBORHOOD_BLURBS: Record<string, string> = {
   'gowanus': 'Industrial-chic with breweries, creative spaces, and the canal cleanup bringing new energy.',
   'red hook': 'Waterfront charm, artist studios, and great food. A bit off the beaten path.',
   'sunset park': 'Diverse community with amazing views from the park, Chinatown eats, and Industry City.',
+  'windsor terrace': 'Quiet, family-friendly enclave bordering Prospect Park. Small-town Brooklyn charm.',
+  'gravesend': 'Diverse residential neighborhood with good transit and authentic ethnic eateries.',
   'bay ridge': 'Suburban feel with waterfront views, diverse dining, and strong community ties.',
   'brighton beach': 'Little Odessa by the sea. Russian bakeries, boardwalk, and beach access.',
   'coney island': 'Iconic boardwalk, amusement parks, and beach living at accessible prices.',
