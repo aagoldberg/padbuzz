@@ -122,6 +122,18 @@ export interface NormalizedListing {
   rentStabilized?: boolean;
   availableDate?: Date;
 
+  // StreetEasy-specific fields
+  netEffectivePrice?: number;
+  monthsFree?: number;
+  leaseTermMonths?: number;
+  furnished?: boolean;
+  isNewDevelopment?: boolean;
+  hasTour3d?: boolean;
+  hasVideos?: boolean;
+  mediaAssetCount?: number;
+  buildingType?: string;
+  upcomingOpenHouse?: Date;
+
   // Tracking
   status: ListingStatus;
   firstSeenAt: Date;

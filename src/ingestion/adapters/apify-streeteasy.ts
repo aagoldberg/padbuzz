@@ -38,14 +38,22 @@ interface ApifyStreetEasyNode {
   monthsFree?: number;
   noFee?: boolean;
   netEffectivePrice?: number;
+  offMarketAt?: string;
   photos?: ApifyStreetEasyPhoto[];
   price?: number;
   sourceGroupLabel?: string;
   sourceType?: string;
   status?: string;
   street?: string;
+  tier?: string;
   unit?: string;
+  upcomingOpenHouse?: {
+    __typename: string;
+    startTime?: string;
+    endTime?: string;
+  };
   urlPath?: string;
+  interestingPriceDelta?: number;
 }
 
 interface ApifyStreetEasyListing {
@@ -377,6 +385,20 @@ export class ApifyStreetEasyAdapter implements SourceAdapter {
 
       noFee: node.noFee,
       availableDate: node.availableAt ? new Date(node.availableAt) : undefined,
+
+      // StreetEasy-specific fields
+      netEffectivePrice: node.netEffectivePrice,
+      monthsFree: node.monthsFree,
+      leaseTermMonths: node.leaseTermMonths,
+      furnished: node.furnished,
+      isNewDevelopment: node.isNewDevelopment,
+      hasTour3d: node.hasTour3d,
+      hasVideos: node.hasVideos,
+      mediaAssetCount: node.mediaAssetCount,
+      buildingType: node.buildingType,
+      upcomingOpenHouse: node.upcomingOpenHouse?.startTime
+        ? new Date(node.upcomingOpenHouse.startTime)
+        : undefined,
 
       status: node.status === 'ACTIVE' ? 'active' : 'unknown',
       firstSeenAt: new Date(),
