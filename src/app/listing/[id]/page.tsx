@@ -176,8 +176,9 @@ function cleanSummary(summary: string): string {
   if (!summary) return summary;
   // Remove mechanical/redundant patterns from old-format summaries
   return summary
-    // Remove room type lists at start: "living, kitchen, bedroom, bathroom."
-    .replace(/^(living|kitchen|bedroom|bathroom|amenity|outdoor|other)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other))*\.?\s*/gi, '')
+    .trim()
+    // Remove room type lists: "living, kitchen, bedroom, bathroom."
+    .replace(/^\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other)(,\s*(living|kitchen|bedroom|bathroom|amenity|outdoor|other))*\.?\s*/gi, '')
     // Remove "Standouts:", "Notable:", "Notable features:", "Watch for:", "Note:" patterns
     .replace(/\s*Standouts?:\s*[^.]+\./gi, '')
     .replace(/\s*Notable(\s+features)?:\s*[^.]+\./gi, '')
