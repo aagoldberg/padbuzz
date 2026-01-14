@@ -5,9 +5,9 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Share, Heart, MapPin, Calendar, Building2, User, Camera, ExternalLink } from 'lucide-react';
-import { 
-  CheckCircleIcon, 
-  ExclamationTriangleIcon, 
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
   ClipboardDocumentListIcon,
   SunIcon,
   ArrowsPointingOutIcon,
@@ -25,7 +25,16 @@ import {
   MapIcon,
   CubeIcon,
   Square3Stack3DIcon,
-  HandThumbUpIcon
+  HandThumbUpIcon,
+  FireIcon,
+  HomeModernIcon,
+  SwatchIcon,
+  PaintBrushIcon,
+  CloudIcon,
+  RectangleGroupIcon,
+  ArchiveBoxIcon,
+  CameraIcon,
+  EyeSlashIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleSolidIcon } from '@heroicons/react/24/solid';
 import Button from '@/components/ui/Button';
@@ -158,31 +167,76 @@ function Description({ text }: { text: string }) {
   );
 }
 
+// Icon mapping for all VLM-generated features and concerns
+const FEATURE_ICONS: Record<string, React.ReactNode> = {
+  // Standouts (features)
+  'hardwood floors': <Square3Stack3DIcon className="w-5 h-5 text-green-600" />,
+  'exposed brick': <CubeIcon className="w-5 h-5 text-green-600" />,
+  'high ceilings': <ArrowsPointingOutIcon className="w-5 h-5 text-green-600" />,
+  'large windows': <SunIcon className="w-5 h-5 text-green-600" />,
+  'updated kitchen': <HomeModernIcon className="w-5 h-5 text-green-600" />,
+  'stainless appliances': <BoltIcon className="w-5 h-5 text-green-600" />,
+  'granite counters': <SwatchIcon className="w-5 h-5 text-green-600" />,
+  'nice view': <PhotoIcon className="w-5 h-5 text-green-600" />,
+  'balcony': <PhotoIcon className="w-5 h-5 text-green-600" />,
+  'fireplace': <FireIcon className="w-5 h-5 text-green-600" />,
+  'crown molding': <PaintBrushIcon className="w-5 h-5 text-green-600" />,
+  'original details': <SparklesIcon className="w-5 h-5 text-green-600" />,
+  'in-unit laundry': <BoltIcon className="w-5 h-5 text-green-600" />,
+  'dishwasher': <BoltIcon className="w-5 h-5 text-green-600" />,
+  'central air': <CloudIcon className="w-5 h-5 text-green-600" />,
+  'walk-in closet': <RectangleGroupIcon className="w-5 h-5 text-green-600" />,
+};
+
+const CONCERN_ICONS: Record<string, React.ReactNode> = {
+  // Trade-offs (concerns)
+  'small space': <ArrowsPointingInIcon className="w-5 h-5 text-amber-500" />,
+  'dark': <MoonIcon className="w-5 h-5 text-amber-500" />,
+  'dated': <ClockIcon className="w-5 h-5 text-amber-500" />,
+  'wear visible': <WrenchScrewdriverIcon className="w-5 h-5 text-amber-500" />,
+  'clutter': <ArchiveBoxIcon className="w-5 h-5 text-amber-500" />,
+  'poor staging': <CameraIcon className="w-5 h-5 text-amber-500" />,
+  'no natural light': <EyeSlashIcon className="w-5 h-5 text-amber-500" />,
+};
+
 function getIconForItem(text: string, isStandout: boolean) {
   const lower = text.toLowerCase();
-  
-  if (lower.includes('light') || lower.includes('windows') || lower.includes('sunny')) return <SunIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('space') || lower.includes('spacious') || lower.includes('ceilings') || lower.includes('layout')) return <ArrowsPointingOutIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('modern') || lower.includes('updated') || lower.includes('clean') || lower.includes('renovated')) return <SparklesIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('kitchen') || lower.includes('appliances') || lower.includes('dishwasher') || lower.includes('laundry')) return <BoltIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('view') || lower.includes('balcony') || lower.includes('outdoor')) return <PhotoIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('safe') || lower.includes('doorman') || lower.includes('secure') || lower.includes('concierge')) return <ShieldCheckIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('floor') || lower.includes('brick') || lower.includes('finish')) return <Square3Stack3DIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('pet')) return <HeartIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('subway') || lower.includes('transport') || lower.includes('location')) return <MapIcon className="w-5 h-5 text-green-600" />;
-  if (lower.includes('quiet')) return <SpeakerXMarkIcon className="w-5 h-5 text-green-600" />;
-  
-  // Trade-offs
-  if (!isStandout) {
-    if (lower.includes('small') || lower.includes('cramped') || lower.includes('tight')) return <ArrowsPointingInIcon className="w-5 h-5 text-red-500" />;
-    if (lower.includes('dark') || lower.includes('no natural light')) return <MoonIcon className="w-5 h-5 text-red-500" />;
-    if (lower.includes('dated') || lower.includes('old')) return <ClockIcon className="w-5 h-5 text-red-500" />;
-    if (lower.includes('noise') || lower.includes('loud')) return <SpeakerWaveIcon className="w-5 h-5 text-red-500" />;
-    if (lower.includes('wear') || lower.includes('damage') || lower.includes('repair')) return <WrenchScrewdriverIcon className="w-5 h-5 text-red-500" />;
-    return <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />;
+
+  // Check exact matches first
+  if (isStandout && FEATURE_ICONS[lower]) {
+    return FEATURE_ICONS[lower];
+  }
+  if (!isStandout && CONCERN_ICONS[lower]) {
+    return CONCERN_ICONS[lower];
   }
 
-  return <CheckCircleSolidIcon className="w-5 h-5 text-green-600" />;
+  // Fallback to fuzzy matching for standouts
+  if (isStandout) {
+    if (lower.includes('light') || lower.includes('windows') || lower.includes('sunny')) return <SunIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('space') || lower.includes('spacious') || lower.includes('ceilings') || lower.includes('layout')) return <ArrowsPointingOutIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('modern') || lower.includes('updated') || lower.includes('renovated')) return <SparklesIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('kitchen') || lower.includes('appliances') || lower.includes('dishwasher') || lower.includes('laundry')) return <BoltIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('view') || lower.includes('balcony') || lower.includes('outdoor')) return <PhotoIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('safe') || lower.includes('doorman') || lower.includes('secure') || lower.includes('concierge')) return <ShieldCheckIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('floor') || lower.includes('brick') || lower.includes('finish')) return <Square3Stack3DIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('fireplace') || lower.includes('fire')) return <FireIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('closet') || lower.includes('storage')) return <RectangleGroupIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('air') || lower.includes('hvac') || lower.includes('ac')) return <CloudIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('pet')) return <HeartIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('subway') || lower.includes('transport') || lower.includes('location')) return <MapIcon className="w-5 h-5 text-green-600" />;
+    if (lower.includes('quiet')) return <SpeakerXMarkIcon className="w-5 h-5 text-green-600" />;
+    return <CheckCircleSolidIcon className="w-5 h-5 text-green-600" />;
+  }
+
+  // Fallback to fuzzy matching for trade-offs
+  if (lower.includes('small') || lower.includes('cramped') || lower.includes('tight')) return <ArrowsPointingInIcon className="w-5 h-5 text-amber-500" />;
+  if (lower.includes('dark') || lower.includes('no natural light') || lower.includes('poor lighting')) return <MoonIcon className="w-5 h-5 text-amber-500" />;
+  if (lower.includes('dated') || lower.includes('old') || lower.includes('outdated')) return <ClockIcon className="w-5 h-5 text-amber-500" />;
+  if (lower.includes('noise') || lower.includes('loud')) return <SpeakerWaveIcon className="w-5 h-5 text-amber-500" />;
+  if (lower.includes('wear') || lower.includes('damage') || lower.includes('repair')) return <WrenchScrewdriverIcon className="w-5 h-5 text-amber-500" />;
+  if (lower.includes('clutter') || lower.includes('messy')) return <ArchiveBoxIcon className="w-5 h-5 text-amber-500" />;
+  if (lower.includes('staging') || lower.includes('photo')) return <CameraIcon className="w-5 h-5 text-amber-500" />;
+  return <ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />;
 }
 
 export default function ListingDetailPage() {
