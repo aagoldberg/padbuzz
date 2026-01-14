@@ -131,6 +131,46 @@ function filterConcerns(
   });
 }
 
+// Consolidate related features into cleaner groups
+function consolidateFeatures(features: string[]): string[] {
+  const lowerFeatures = features.map(f => f.toLowerCase());
+  const result: string[] = [];
+  const used = new Set<string>();
+
+  // Kitchen group: updated kitchen, granite counters, stainless appliances, dishwasher
+  const kitchenItems = ['updated kitchen', 'granite counters', 'stainless appliances', 'dishwasher'];
+  const hasKitchenItems = kitchenItems.filter(k => lowerFeatures.includes(k));
+  if (hasKitchenItems.length >= 2) {
+    result.push('Chef\'s Kitchen');
+    hasKitchenItems.forEach(k => used.add(k));
+  }
+
+  // Light/Views group: large windows, nice view
+  const lightItems = ['large windows', 'nice view'];
+  const hasLightItems = lightItems.filter(l => lowerFeatures.includes(l));
+  if (hasLightItems.length >= 2) {
+    result.push('Great Light & Views');
+    hasLightItems.forEach(l => used.add(l));
+  }
+
+  // Character group: exposed brick, crown molding, original details
+  const characterItems = ['exposed brick', 'crown molding', 'original details'];
+  const hasCharacterItems = characterItems.filter(c => lowerFeatures.includes(c));
+  if (hasCharacterItems.length >= 2) {
+    result.push('Character Details');
+    hasCharacterItems.forEach(c => used.add(c));
+  }
+
+  // Add remaining features that weren't consolidated
+  for (const feature of features) {
+    if (!used.has(feature.toLowerCase())) {
+      result.push(feature);
+    }
+  }
+
+  return result;
+}
+
 // Clean up old-format summaries that have "Standouts:", "Notable:", "Watch for:" patterns
 function cleanSummary(summary: string): string {
   if (!summary) return summary;
@@ -177,7 +217,11 @@ function Description({ text }: { text: string }) {
 
 // Icon mapping for all VLM-generated features and concerns
 const FEATURE_ICONS: Record<string, React.ReactNode> = {
-  // Standouts (features)
+  // Consolidated groups
+  'chef\'s kitchen': <HomeModernIcon className="w-5 h-5 text-green-600" />,
+  'great light & views': <SunIcon className="w-5 h-5 text-green-600" />,
+  'character details': <SparklesIcon className="w-5 h-5 text-green-600" />,
+  // Individual standouts (features)
   'hardwood floors': <Square3Stack3DIcon className="w-5 h-5 text-green-600" />,
   'exposed brick': <CubeIcon className="w-5 h-5 text-green-600" />,
   'high ceilings': <ArrowsPointingOutIcon className="w-5 h-5 text-green-600" />,
@@ -557,23 +601,28 @@ export default function ListingDetailPage() {
                      {(listing.storedImageAnalysis.features?.length || listing.storedImageAnalysis.concerns?.length) ? (
                       <div className="grid md:grid-cols-2 gap-12">
                         {/* Standouts Column */}
-                        {listing.storedImageAnalysis.features && listing.storedImageAnalysis.features.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6">
-                              Standouts
-                            </h4>
-                            <ul className="space-y-4">
-                              {listing.storedImageAnalysis.features.map((feature, i) => (
-                                <li key={i} className="flex items-start gap-3 text-gray-700">
-                                  <div className="flex-shrink-0 mt-0.5">
-                                    {getIconForItem(feature, true)}
-                                  </div>
-                                  <span className="text-base">{feature}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
+                        {(() => {
+                          const consolidatedFeatures = consolidateFeatures(
+                            listing.storedImageAnalysis.features || []
+                          );
+                          return consolidatedFeatures.length > 0 && (
+                            <div>
+                              <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-6">
+                                Standouts
+                              </h4>
+                              <ul className="space-y-4">
+                                {consolidatedFeatures.map((feature, i) => (
+                                  <li key={i} className="flex items-start gap-3 text-gray-700">
+                                    <div className="flex-shrink-0 mt-0.5">
+                                      {getIconForItem(feature, true)}
+                                    </div>
+                                    <span className="text-base">{feature}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          );
+                        })()}
 
                         {/* Trade-offs Column */}
                         {(() => {
