@@ -532,18 +532,15 @@ export default function ListingDetailPage() {
 
             {/* Price & Score Block */}
             <div className="flex flex-row md:flex-col items-center md:items-end gap-4 md:gap-1">
-              {/* Verdict Badge */}
-              {listing.storedImageAnalysis && (
-                <div className={`flex items-center gap-3 px-4 py-2 rounded-xl mb-2 ${getQualityLabel(listing.storedImageAnalysis.overallQuality).color.replace('text-', 'bg-').split(' ')[0].replace('600', '100')} ${getQualityLabel(listing.storedImageAnalysis.overallQuality).color.split(' ')[0]}`}>
-                   <div className="text-3xl font-black tracking-tighter">
+              {/* Quality Score */}
+              {listing.storedImageAnalysis?.overallQuality && (
+                <div className="flex items-center gap-2 mb-2">
+                   <span className="text-2xl font-bold text-gray-900">
                      {listing.storedImageAnalysis.overallQuality.toFixed(1)}
-                   </div>
-                   <div className="flex flex-col">
-                     <span className="text-[10px] font-bold uppercase opacity-70 leading-none mb-0.5">Analyst Verdict</span>
-                     <span className="text-sm font-black uppercase tracking-wide leading-none">
-                       {getQualityLabel(listing.storedImageAnalysis.overallQuality).label}
-                     </span>
-                   </div>
+                   </span>
+                   <span className="text-sm font-medium text-gray-500">
+                     {getQualityLabel(listing.storedImageAnalysis.overallQuality).label}
+                   </span>
                 </div>
               )}
               
